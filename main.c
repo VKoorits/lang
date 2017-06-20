@@ -1,0 +1,31 @@
+#include <stdio.h>
+#include <malloc.h>
+#include <string.h>
+#include "lexer/lexer.h"
+#include "test/test.h"
+
+
+int main(int argc, char* argv[]){
+	if ( argc > 1 ) {
+		if ( !strcmp( argv[1], "-test") ) {
+			test();
+		} else {
+			printf("UNKNOWN PARAMETR %s\n", argv[1]);
+			return 0;
+		}
+	} else {	
+		
+		FILE* f = stderr;
+		ALL_LEX_TOKENS* all_token = lex_analyze("lang_code/file.l", f);
+
+		if(all_token){
+			int k=0;
+			for(int i=0; i< (all_token->count_token_lines); i++){
+				for(int j=0; j < (all_token->count_tokens[i]); j++)
+					print_token(&all_token->tokens[k++], stdout);
+				printf("\n=================================\n");
+			}
+			printf("%d\n", all_token->summary_count_tokens);
+		}
+	}
+}

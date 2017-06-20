@@ -1,0 +1,2 @@
+ERROR: more than 1 point in number 4:
+  print 3_000_000.14.16

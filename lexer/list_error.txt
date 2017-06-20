@@ -1,0 +1,7 @@
+1) ERROR: lex_analyze can`t open file 						# ошибка открытия файла
+2) ERROR: IDENT_TOKEN can`t start with number				# имя пеерменной/функции/класса не может начинаться с цифры
+														  	  -- нельзя 42function
+														  	  -- можно function42
+3) ERROR: more than 1 point in number						# больше одной точки в числе
+4) ERROR: no closing quote in string 						# нет закрывающей кавычки
+5) ERROR: no closing multyline comment, that opend in str 	# не закрытый мульти-комментарий

@@ -1,0 +1,131 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "test.h"
+
+/*
+TODO: убрать ограничение на длину строки MAX_LENGTH_STRING_IN_TOKEN_FILE, т.к токеном может быть большая строка
+TODO: printf("Why if I print not some str here, exp_str crashed?\n");
+*/
+
+#define MAX_LENGTH_STRING_IN_TOKEN_FILE (512)
+static const char* TEST_PATH = "test/test_data/";
+
+char* cat_path(char* path, char* dir, char* filename, char* extension){
+	char* res = malloc(
+		strlen(TEST_PATH) +
+		strlen(path) + 
+		strlen(dir) +
+		strlen(filename) +
+		1 + // for '.'
+		strlen(extension)
+	);
+	strcpy(res, TEST_PATH);
+	strcat(res, path);
+	strcat(res, dir);
+	strcat(res, filename);
+	strcat(res, ".");
+	strcat(res, extension);
+	return res;
+}
+
+
+
+void write_tokens(FILE* f, ALL_LEX_TOKENS* all_token){
+	int k=0;
+	for(int i=0; i< (all_token->count_token_lines); i++){
+		for(int j=0; j < (all_token->count_tokens[i]); j++)
+			print_token(&all_token->tokens[k++], f);
+		fprintf(f,"#\n");
+	}
+	fprintf(f,"%d\n", all_token->summary_count_tokens);
+}
+
+char** file_eq(char* got_path, char* expected_path) {
+	FILE* got = fopen(got_path, "r");
+	char** res = malloc(3*sizeof(char*)); // если оба файла откроются, то res изменится
+	res[0] = (char*)-1;
+	if (got) {
+		FILE* exp = fopen(expected_path, "r");
+		if(exp){
+			//#### если оба файла открыты
+			int num_str = 1;
+			char got_str[MAX_LENGTH_STRING_IN_TOKEN_FILE],
+				 exp_str[MAX_LENGTH_STRING_IN_TOKEN_FILE];
+				 
+			//построчное сравнивание содержимого файлов
+			res[0] = (char*)0; //если есть несовпадение, то res изменится
+			while(!feof(got) && !feof(exp)){
+				fgets(got_str, MAX_LENGTH_STRING_IN_TOKEN_FILE, got);
+				fgets(exp_str, MAX_LENGTH_STRING_IN_TOKEN_FILE, exp);
+				if( strcmp(got_str, exp_str) ) {
+					printf("Why if I print not some str here, exp_str crashed?\n");
+					printf("\n_");
+					res[0] = (char*)num_str;
+					res[1] = got_str;
+					res[2] = exp_str;
+				  fclose(got);
+				  fclose(exp);
+					break;
+				}
+				num_str++;
+			}
+			//####		
+		} else
+			fprintf(stderr, "TEST ERROR: in sub'file_eq' Can`t open file1 %s\n", expected_path);
+	} else 
+		fprintf(stderr, "TEST ERROR: in sub'file_eq' Can`t open file2 %s\n", got_path);
+	return res;
+}
+
+int fio_test(char* path, char* filename) { 
+	/*
+		file input ouput _ test
+		вывод перенаправляется в файл и сравнивается с ожидаемым файлом
+	*/
+	char* full_input_filename = cat_path(path, "input/", filename, "l");
+	char* full_output_filename = cat_path(path, "output/", filename, "txt");
+	
+	FILE* out = fopen(full_output_filename, "w"); // для записи ошибок
+	if( !out ){
+		fprintf(stderr, "TEST ERROR: in sub'file_eq' Can`t open file %s\n", full_output_filename);
+		return 0;
+	}
+	
+	ALL_LEX_TOKENS* all_token = lex_analyze( full_input_filename, out);
+	if(all_token){
+		write_tokens(out, all_token);
+	}
+	fclose(out);	
+	
+	
+	char* full_expected_filename = cat_path(path, "expected/", filename, "txt");
+	char ** res = file_eq(full_output_filename, full_expected_filename);
+	if( (int)res[0] == -1 ) {
+		printf("\n\tTEST ERROR: can`t open file in sub'fio_test'");
+		return 0;
+	} else if( (int)res[0] > 0 ) {
+		printf("\n\tThe files differ in str %d\n", (int)res[0]);
+		printf("\tGot     :%s", res[1]);
+		printf("\tExpected:%s", res[2]);
+		return 0;
+	}
+	return 1;
+}
+
+int test() {
+	//LEXER
+	char* filenames[] = {
+		"two_point_in_num",
+		"no_closing_quote",
+		"unclosed_comment",
+		"wrong_ident_token",
+		"unreal_file",
+		"normal_script"
+	};
+	for(int i = 0; i < sizeof(filenames) / sizeof(char*); i++) {
+		printf("TEST %25s: ", filenames[i]);	
+		int res = fio_test("lexer/", filenames[i]);
+		if(res == 1) printf("OK\n");
+	}
+}

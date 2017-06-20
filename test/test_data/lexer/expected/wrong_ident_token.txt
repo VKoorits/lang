@@ -1,0 +1,3 @@
+ERROR: IDENT_TOKEN can`t start with number:
+  9:		for 1link in html(answer.text).get_links:
+
