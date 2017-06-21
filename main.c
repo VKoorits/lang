@@ -3,6 +3,7 @@
 #include <string.h>
 #include "lexer/lexer.h"
 #include "test/test.h"
+#include "AST/AST.h"
 
 
 int main(int argc, char* argv[]){
@@ -11,6 +12,7 @@ int main(int argc, char* argv[]){
 			test();
 		} else {
 			printf("UNKNOWN PARAMETR %s\n", argv[1]);
+			printf("THERE ARE PARAMETRS:\n\t-test\n");
 			return 0;
 		}
 	} else {	
@@ -23,9 +25,11 @@ int main(int argc, char* argv[]){
 			for(int i=0; i< (all_token->count_token_lines); i++){
 				for(int j=0; j < (all_token->count_tokens[i]); j++)
 					print_token(&all_token->tokens[k++], stdout);
-				printf("\n=================================\n");
+				printf("=================================\n");
 			}
 			printf("%d\n", all_token->summary_count_tokens);
 		}
+		build_AST(all_token);
 	}
 }
+

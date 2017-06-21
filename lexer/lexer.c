@@ -10,46 +10,28 @@ TODO защита от длинных строк в программе
 TODO реализация INT_TOKEN and FLOAT_TOKEN
 TODO отдельный токен под каждый спец символ ? (нужно ли??? может наоборот, как можно больше в один)
 													оставить пока так
+TODO обработка отступов
+TODO приравнивать ; к переносу строки
 */
 void mark() { printf("\t==-==\n\t  |\n\t==-==\n");}
 
-#define MAX_LENGTH_STRING_IN_LANG_PROG (256)
-#define STARTED_COUNT_TOKENS (64)
-#define STARTED_COUNT_LINES (16)
-#define EXPANSION_NUM (2)
-
-#define UNKNOWN_TOKEN (0)
-#define NUM_TOKEN (1)
-#define FLOAT_NUM_TOKEN (2)
-#define STRING_TOKEN (3)
-#define IDENT_TOKEN (4)
-#define OPERATION_TOKEN (5)
-#define RESERVED_TOKEN (6)
-
-#define NOT_IN_QUOTE (0)
-#define IN_QUOTE (1)
-#define IN_DOUBLE_QUOTE (2)
-
-
-#define true 1
-#define false 0
 
 
 void print_token(const LEX_TOKEN* tok, FILE* output_stream){
 	char* token_type;
-	if(tok->index == UNKNOWN_TOKEN)
+	if(tok->type == UNKNOWN_TOKEN)
 		token_type = "UNKNOWN_TOKEN";
-	else if(tok->index == NUM_TOKEN)
-		token_type = "NUM_TOKEN";
-	else if(tok->index == FLOAT_NUM_TOKEN)
+	else if(tok->type == INT_NUM_TOKEN)
+		token_type = "INT_NUM_TOKEN";
+	else if(tok->type == FLOAT_NUM_TOKEN)
 		token_type = "FLOAT_NUM_TOKEN";
-	else if(tok->index == STRING_TOKEN)
+	else if(tok->type == STRING_TOKEN)
 		token_type = "STRING_TOKEN";
-	else if(tok->index == IDENT_TOKEN)
+	else if(tok->type == IDENT_TOKEN)
 		token_type = "IDENT_TOKEN";
-	else if(tok->index == OPERATION_TOKEN)
+	else if(tok->type == OPERATION_TOKEN)
 		token_type = "OPERATION_TOKEN";
-	else if(tok->index == RESERVED_TOKEN)
+	else if(tok->type == RESERVED_TOKEN)
 		token_type = "RESERVED_TOKEN";
 	else token_type = "\n\n\n\nSTRANGE_TOKEN_TYPE\n\n\n\n\a";
 	fprintf(output_stream, "%s: %s\n", token_type, tok->token);
@@ -69,7 +51,7 @@ int isreserved() {
 }
 
 
-int _get_token_index(const char* token_str, const int was_quote){
+int _get_token_type(const char* token_str, const int was_quote){
 	if(was_quote)
 		return was_quote;
 	return 42;
@@ -82,6 +64,7 @@ static int* numerator;
 static int count_tokens, len_token, token_type, this_line_pos;
 static int tokens_capacity = STARTED_COUNT_TOKENS;
 static char* token_str;
+static int count_point_in_num = 0;
 
 //#####################
 
@@ -100,12 +83,13 @@ void _add_token(){
 	//перенос накопленных данных
 	tokens[count_tokens].token = malloc(len_token+1);
 	strcpy( tokens[count_tokens].token, token_str);
-	tokens[count_tokens].index = token_type;//_get_token_index(token_str, 0);// <=============-------идентификация токена
+	tokens[count_tokens].type = token_type;//_get_token_type(token_str, 0);// <=============-------идентификация токена
 	
 	count_tokens++;
 	len_token = 0;
 	numerator[this_line_pos]++;
 	token_type = UNKNOWN_TOKEN;
+	count_point_in_num = 0;
 }
 
 
@@ -138,7 +122,7 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 		len_token = 0;
 		token_type = UNKNOWN_TOKEN;
 		int in_quote = 0;
-		int count_point_in_num = 0;
+		
 		
 		while( this_char = str[pos_in_main_str++] ) { // обработка одной строки посимволно
 			if(multyline_comment){
@@ -153,12 +137,12 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 				мы можем встретить символ в нескольких случаях:
 				IDENT_TOKEN or STRING_TOKEN:
 					просто запоминаем
-				NUM_TOKEN:
+				INT_NUM_TOKEN:
 					кидаем ошибку
 				OPERATION_TOKEN:
 					сохраняем токен операций и начинаем записывать новый IDENT_TOKEN
 				*/
-				if( token_type == NUM_TOKEN ) {//буква не может идти вплотную к числу: [ 42bar ] неверное выражение
+				if( token_type == INT_NUM_TOKEN ) {//буква не может идти вплотную к числу: [ 42bar ] неверное выражение
 					fprintf(error_stream, "ERROR: IDENT_TOKEN can`t start with number:\n  %d:\t%s\n", number_str, str);
 					return NULL;
 				} else if( token_type == OPERATION_TOKEN ) { // операции могут быть вплотную к словам: [ +=bar ] eq [ += bar ]
@@ -171,17 +155,17 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 				
 				/*
 				мы можем встретить число в нескольких случаях:
-				IDENT_TOKEN  or NUM_TOKEN or STRING_TOKEN: [ bar42 ] or [ 42 ] or [ "42" ]
+				IDENT_TOKEN  or INT_NUM_TOKEN or STRING_TOKEN: [ bar42 ] or [ 42 ] or [ "42" ]
 					просто запоминаем
 				OPERATION_TOKEN:
-					сохраняем токен операций и начинаем записывать новый NUM_TOKEN
+					сохраняем токен операций и начинаем записывать новый INT_NUM_TOKEN
 				*/
 				if( token_type == OPERATION_TOKEN ) { // операции могут быть вплотную к числам: | +=bar | eq | += bar |
 					_add_token();
-					token_type = NUM_TOKEN;
+					token_type = INT_NUM_TOKEN;
 				}
 				token_str[len_token++] = this_char;
-				if(len_token == 1 && token_type != STRING_TOKEN) token_type = NUM_TOKEN;
+				if(len_token == 1 && token_type != STRING_TOKEN) token_type = INT_NUM_TOKEN;
 			} else if ( isspace(this_char) ) {
 				/*
 				мы можем встретить пробельный символ в двух случаях:
@@ -201,7 +185,7 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 				int this_is_quote = NOT_IN_QUOTE;
 				if (this_char == '\'')  this_is_quote = IN_QUOTE;
 				else if (this_char == '"') this_is_quote = IN_DOUBLE_QUOTE;
-				else if ( this_char == '.' && token_type == NUM_TOKEN) {
+				else if ( this_char == '.' && token_type == INT_NUM_TOKEN) {
 					count_point_in_num++;
 					if(count_point_in_num > 1) {
 						fprintf(error_stream, "ERROR: more than 1 point in number %d:\n  %s", number_str, str);
@@ -238,7 +222,7 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 						_add_token();
 						token_type = STRING_TOKEN;
 					} else token_str[len_token++] = this_char;
-				} else if (this_char == '_' && token_type != NUM_TOKEN) {
+				} else if (this_char == '_' && token_type != INT_NUM_TOKEN) {
 					if ( token_type == OPERATION_TOKEN ) {
 						_add_token();
 						token_type = IDENT_TOKEN;
