@@ -60,30 +60,39 @@ void print_stack(token_stack* stack) {
 
 #define EMPTY 			(0)
 	#define MIN_OPERATION (1)
-#define ADD				(1)  
-#define SUB				(2) 
-#define MUL				(3) 
-#define DIV				(4)
-	#define MAX_OPERATION (4)
-#define OPEN_BRACKET	(5)
-#define CLOSED_BRACKET	(6)
+#define EQUAL			(1)
+#define ADD				(2)  
+#define SUB				(3) 
+#define MUL				(4) 
+#define DIV				(5)
+#define REST_DIV		(6)
+#define DOT				(7)
+	#define MAX_OPERATION (7)
+#define OPEN_BRACKET	(8)
+#define CLOSED_BRACKET	(9)
 
-//	  |  +  -  *  /  (  )
-const int variants[6][7] = {
-	{ 4, 1, 1, 1, 1, 1, 5 },// |
-	{ 2, 2, 2, 1, 1, 1, 2 },// +
-	{ 2, 2, 2, 1, 1, 1, 2 },// -
-	{ 2, 2, 2, 2, 2, 1, 2 },// *
-	{ 2, 2, 2, 2, 2, 1, 2 },// /
-	{ 5, 1, 1, 1, 1, 1, 3 },// (
+//	  |  =  +  -  *  /  %  .  (  )
+const int variants[9][10] = {
+	{ 4, 1, 1, 1, 1, 1, 1, 1, 1, 5 },// |
+	{ 2, 2, 1, 1, 1, 1, 1, 1, 1, 2 },// =
+	{ 2, 2, 2, 2, 1, 1, 1, 1, 1, 2 },// +
+	{ 2, 2, 2, 2, 1, 1, 1, 1, 1, 2 },// -
+	{ 2, 2, 2, 2, 2, 2, 2, 1, 1, 2 },// *
+	{ 2, 2, 2, 2, 2, 2, 2, 1, 1, 2 },// /
+	{ 2, 2, 2, 2, 2, 2, 2, 1, 1, 2 },// %
+	{ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 },// .
+	{ 5, 1, 1, 1, 1, 1, 1, 1, 1, 3 },// (
 };
 
 int get_op_index(const char* op) {
 	switch(op[0]){
+		case '=': return EQUAL;
 		case '+': return ADD;
 		case '-': return SUB;
 		case '/': return DIV;
 		case '*': return MUL;
+		case '%': return REST_DIV;
+		case '.': return DOT;
 		case '(': return OPEN_BRACKET;
 		case ')': return CLOSED_BRACKET;
 	}
