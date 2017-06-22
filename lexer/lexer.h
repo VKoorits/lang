@@ -25,9 +25,42 @@
 #define true 1
 #define false 0
 
+/*
+приоритет операторов (от наибольшего к наименьшему)
+	. (оператор доступа)
+	in
+	! not
+	**
+	* / // %
+	+ -
+	<< >>
+	eq < <= >= >
+	& ^
+	|
+	&& and ^^ xor
+	|| or
+	= += -= *= /= //= **= %= 
+*/
+#define EQUAL 	(1)
+#define LOG_OR	(2)
+#define LOG_AND (3)
+#define BIT_OR	(4)
+#define BIT_XOR	(6)
+#define BIT_AND	(6)
+#define CMP		(7)
+#define SHIFT 	(8)
+#define ADD		(9)
+#define MUL 	(10)
+#define POW 	(11)
+#define NOT		(12)
+#define IN		(13)
+#define DOT		(14)
+
+
+
 typedef struct LEX_TOKEN {
 	short type;
-	short info;
+	short info;//для операций приоритет
 	char* token;
 } LEX_TOKEN;
 

@@ -13,13 +13,15 @@ TODO отдельный токен под каждый спец символ ? (
 TODO обработка отступов
 TODO приравнивать ; к переносу строки
 */
-char* operators_3[] = {"**=", "//=", "<<=", ">>="};
-char* operators_2[] = {"+=", "-=", "*=", "/=", "%=", "**", "////", ">>", "<<", "&&", "||", "->"};
-char* char_operators[] = {"not", "and", "or", "in"};
-static const char operations[] = {'+', '-', '*', '/', '%', '.', ',',
-								 '=', '!', '^', '>', '<', '&', '|',
-								 '(', '[', '{', '}', ']', ')', ';',':' };
 
+char* operators_3[] = {"**=", "//=", "<<=", ">>="};
+int 	property_3[] = {EQUAL, EQUAL, EQUAL, EQUAL};
+char* operators_2[] = {"+=", "-=", "*=", "/=", "%=", "**", "//",">>", "<<",  "&&",   "^^",  "||",  "->", ">=", "<=", "==", "!="};
+int 	property_2[] = {EQUAL,EQUAL,EQUAL,EQUAL,EQUAL, POW, MUL, SHIFT,SHIFT,LOG_AND,LOG_AND,LOG_OR, -1,   CMP,  CMP,  CMP,  CMP};
+char* char_operators[] = {"not", "and",   "or", "eq", "in", "xor"};
+int		property_char[]= { NOT, LOG_AND, LOG_OR, CMP, IN,   LOG_AND};
+static const char operations[] = {'+', '-', '*', '/', '%', '.', ',',  '=',  '!', '^',   '>', '<', '&',    '|', '(', '[', '{', '}', ']', ')', ';',':' };
+int 	property_1[] = 			 {ADD, ADD, MUL, MUL, MUL, DOT, -1,  EQUAL, NOT,BIT_XOR,CMP, CMP,BIT_AND,BIT_OR, -1, -1,  -1,  -1,  -1,   -1, -1, -1 };
 int is_char_operator(char* op){
 	for(int i=0; i < sizeof(char_operators)/sizeof(char*); i++)
 		if( !strcmp(op, char_operators[i]) )
@@ -57,7 +59,7 @@ int isop(int character) {
 	//operations - global var in this file
 	for(int i=0; i < sizeof(operations); i++)
 		if(character == operations[i])
-			return true;
+			return property_1[i];
 	return false;
 }
 
@@ -80,26 +82,28 @@ static int count_tokens, len_token, token_type, this_line_pos;
 static int tokens_capacity = STARTED_COUNT_TOKENS;
 static char* token_str;
 static int count_point_in_num = 0;
+static int priorety; //для записи приоритета оператора
 
 //#####################
 
-void get_op(char first, char second, char third, int* offset) {
+int get_op(char first, char second, char third, int* offset, const int priorety) {
 	token_str[0] = first; token_str[1] = second; token_str[2] = third; token_str[3] = '\0';
 	for(int i = 0; i < sizeof(operators_3)/sizeof(char*); ++i)
 		if( !strcmp(operators_3[i], token_str) ) {
 			*offset += 2;
 			len_token = 3;
-			return;
+			return property_3[i];
 		}
 	token_str[2] = '\0';
 	for(int i = 0; i < sizeof(operators_2)/sizeof(char*); ++i)
 		if( !strcmp(operators_2[i], token_str) ) {
 			*offset += 1;
 			len_token = 2;		
-			return;
+			return property_2[i];
 		}
 	token_str[1] = '\0';
 	len_token = 1;
+	return priorety;
 }
 
 void _add_token(){
@@ -121,6 +125,10 @@ void _add_token(){
 		token_type = OPERATION_TOKEN;
 	tokens[count_tokens].type = token_type;//_get_token_type(token_str, 0);// <=============-------идентификация токена
 	
+	if(token_type == OPERATION_TOKEN)
+		tokens[count_tokens].info = priorety;
+	else
+		tokens[count_tokens].info = 0;
 	count_tokens++;
 	len_token = 0;
 	numerator[this_line_pos]++;
@@ -237,18 +245,17 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 					}
 					token_str[len_token++] = this_char;
 
-				}  else if( this_char == '/' && str[pos_in_main_str] == '/' && in_quote == NOT_IN_QUOTE) { // однострочный комментарий 1.02
+				}  else if( this_char == '#' && in_quote == NOT_IN_QUOTE) { // однострочный комментарий 1.02
 					_add_token();
 					break;
 				} else if (this_char == '/' && str[pos_in_main_str] == '*') {
 						multyline_comment = number_str;
 						++pos_in_main_str;
 				} else if( in_quote && this_char == '\\' && (str[pos_in_main_str] == '\'' || str[pos_in_main_str] == '"') ) {
-						mark();
 						token_str[len_token++] = str[pos_in_main_str];
 						pos_in_main_str++;
 						continue;
-				} else if( isop(this_char) ){
+				} else if( priorety = isop(this_char) ){
 					if( token_type != OPERATION_TOKEN && token_type != STRING_TOKEN ) {
 						_add_token();
 						//printf("Started operator: %c", this_char);
@@ -256,7 +263,7 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 						//TODO не только здесь
 						
 						//функция get_op() изменяет token_str
-						get_op(this_char, str[pos_in_main_str], str[pos_in_main_str+1], &pos_in_main_str);
+						priorety = get_op(this_char, str[pos_in_main_str], str[pos_in_main_str+1], &pos_in_main_str, priorety);
 
 						token_type = OPERATION_TOKEN;
 						_add_token();

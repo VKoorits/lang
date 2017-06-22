@@ -58,44 +58,49 @@ void print_stack(token_stack* stack) {
 }
 
 
-#define EMPTY 			(0)
-	#define MIN_OPERATION (1)
-#define EQUAL			(1)
-#define ADD				(2)  
-#define SUB				(3) 
-#define MUL				(4) 
-#define DIV				(5)
-#define REST_DIV		(6)
-#define DOT				(7)
-	#define MAX_OPERATION (7)
-#define OPEN_BRACKET	(8)
-#define CLOSED_BRACKET	(9)
+#define EMPTY 				(100)
+#define OPEN_BRACKET		(101)
+#define CLOSED_BRACKET		(102)
 
-//	  |  =  +  -  *  /  %  .  (  )
-const int variants[9][10] = {
-	{ 4, 1, 1, 1, 1, 1, 1, 1, 1, 5 },// |
-	{ 2, 2, 1, 1, 1, 1, 1, 1, 1, 2 },// =
-	{ 2, 2, 2, 2, 1, 1, 1, 1, 1, 2 },// +
-	{ 2, 2, 2, 2, 1, 1, 1, 1, 1, 2 },// -
-	{ 2, 2, 2, 2, 2, 2, 2, 1, 1, 2 },// *
-	{ 2, 2, 2, 2, 2, 2, 2, 1, 1, 2 },// /
-	{ 2, 2, 2, 2, 2, 2, 2, 1, 1, 2 },// %
-	{ 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 },// .
-	{ 5, 1, 1, 1, 1, 1, 1, 1, 1, 3 },// (
-};
-
-int get_op_index(const char* op) {
-	switch(op[0]){
-		case '=': return EQUAL;
-		case '+': return ADD;
-		case '-': return SUB;
-		case '/': return DIV;
-		case '*': return MUL;
-		case '%': return REST_DIV;
-		case '.': return DOT;
-		case '(': return OPEN_BRACKET;
-		case ')': return CLOSED_BRACKET;
+// x >>= man . age + (2+3**4)
+int get_condition(int last_code, int this_code) {
+	/*
+	
+	//	  |  =  +  -  *  /  %  .  (  )
+	const int variants[9][10] = {
+		{ 4, 1, 1, 1, 1, 1, 1, 1, 1, 5 },// |
+		{ 2, 2, 1, 1, 1, 1, 1, 1, 1, 2 },// =
+		{ 2, 2, 2, 2, 1, 1, 1, 1, 1, 2 },// +
+		{ 2, 2, 2, 2, 1, 1, 1, 1, 1, 2 },// -
+		{ 2, 2, 2, 2, 2, 2, 2, 1, 1, 2 },// *
+		{ 2, 2, 2, 2, 2, 2, 2, 1, 1, 2 },// /
+		{ 2, 2, 2, 2, 2, 2, 2, 1, 1, 2 },// %
+		{ 2, 2, 2, 2, 2, 2, 2, 2, 1, 2 },// .
+		{ 5, 1, 1, 1, 1, 1, 1, 1, 1, 3 },// (
+	};
+	
+	*/
+	if( last_code == EMPTY ) {
+		if(this_code == CLOSED_BRACKET)
+			return 5;
+		else return 1;
+	}else if (last_code == OPEN_BRACKET){
+		if( this_code == EMPTY )
+			return 5;
+		else if( this_code == CLOSED_BRACKET)
+			return 3;
+		else return 1;
 	}
+	
+	if( this_code == OPEN_BRACKET)
+		return 1;
+	else if ( this_code == CLOSED_BRACKET)
+		return 2;
+	
+	
+	if ( last_code > this_code )
+		return 2;
+	else return 1	;
 }
 
 void analyze(token_stack*, token_stack*, LEX_TOKEN*);
@@ -124,15 +129,28 @@ int func5(token_stack* Moscow, token_stack* Kiev, LEX_TOKEN* token){
 int (*functions[5])(token_stack*, token_stack*, LEX_TOKEN*) = 
 								{ func1, func2, func3, func4, func5 };
 								
-void analyze(token_stack* op_stack, token_stack* val_stack, LEX_TOKEN* token){
-	int i = 0, j = get_op_index( token->token );
-	LEX_TOKEN* top = peek(op_stack);
+
+int get_op_index(LEX_TOKEN* top) {
+	int index = EMPTY;
 	if(top) {
-		i = get_op_index( top->token );
+		index = top->info;
+		if(index == -1){
+			if(top->token[0] == '(')
+				index = OPEN_BRACKET;
+			else if ( top->token[0] == ')')
+				index = CLOSED_BRACKET;
+		}
 	}
+	return index;
+}								
+								
+void analyze(token_stack* op_stack, token_stack* val_stack, LEX_TOKEN* token){
+	int last_code = get_op_index( peek(op_stack) );
+	int this_code = get_op_index( token );
 	
-	int variant = variants[i][j];	
-					
+	int variant = get_condition(last_code, this_code);	
+	//printf("VARIANT: %d\n", variant);
+	//printf("Operator => %s this_code => %d, last_code=> %d\n", token->token, this_code, last_code);
 	functions[variant-1](op_stack, val_stack, token);
 }
 
@@ -153,8 +171,9 @@ AST_root* build_AST(ALL_LEX_TOKENS* all_token){
 		}
 		
 		while( peek(op_stack) ) {
-			int ind = get_op_index(peek(op_stack)->token);
-			if( ind >= MIN_OPERATION && ind <= MAX_OPERATION)
+			//print_token(peek(op_stack), stdout);
+			int ind = get_op_index(peek(op_stack));
+			if( ind >= EQUAL && ind <= DOT)
 				push(val_stack, pop(op_stack));
 			else
 				break;
