@@ -13,6 +13,21 @@ TODO отдельный токен под каждый спец символ ? (
 TODO обработка отступов
 TODO приравнивать ; к переносу строки
 */
+char* operators_3[] = {"**=", "//=", "<<=", ">>="};
+char* operators_2[] = {"+=", "-=", "*=", "/=", "%=", "**", "////", ">>", "<<", "&&", "||", "->"};
+char* char_operators[] = {"not", "and", "or", "in"};
+static const char operations[] = {'+', '-', '*', '/', '%', '.', ',',
+								 '=', '!', '^', '>', '<', '&', '|',
+								 '(', '[', '{', '}', ']', ')', ';',':' };
+
+int is_char_operator(char* op){
+	for(int i=0; i < sizeof(char_operators)/sizeof(char*); i++)
+		if( !strcmp(op, char_operators[i]) )
+			return true;
+	return false;
+}
+								 
+
 void mark() { printf("\t==-==\n\t  |\n\t==-==\n");}
 
 
@@ -37,15 +52,15 @@ void print_token(const LEX_TOKEN* tok, FILE* output_stream){
 	fprintf(output_stream, "%s: %s\n", token_type, tok->token);
 }
 
+
 int isop(int character) {
-	static const char operations[] = {'+', '-', '*', '/', '%', '.', ',',
-								 	'=', '!', '^', '>', '<', '&', '|',
-								 	'(', '[', '{', '}', ']', ')', ';',':' };
+	//operations - global var in this file
 	for(int i=0; i < sizeof(operations); i++)
 		if(character == operations[i])
 			return true;
 	return false;
 }
+
 int isreserved() {
 
 }
@@ -68,6 +83,25 @@ static int count_point_in_num = 0;
 
 //#####################
 
+void get_op(char first, char second, char third, int* offset) {
+	token_str[0] = first; token_str[1] = second; token_str[2] = third; token_str[3] = '\0';
+	for(int i = 0; i < sizeof(operators_3)/sizeof(char*); ++i)
+		if( !strcmp(operators_3[i], token_str) ) {
+			*offset += 2;
+			len_token = 3;
+			return;
+		}
+	token_str[2] = '\0';
+	for(int i = 0; i < sizeof(operators_2)/sizeof(char*); ++i)
+		if( !strcmp(operators_2[i], token_str) ) {
+			*offset += 1;
+			len_token = 2;		
+			return;
+		}
+	token_str[1] = '\0';
+	len_token = 1;
+}
+
 void _add_token(){
 	if( len_token == 0 && token_type != STRING_TOKEN)
 		return;
@@ -83,6 +117,8 @@ void _add_token(){
 	//перенос накопленных данных
 	tokens[count_tokens].token = malloc(len_token+1);
 	strcpy( tokens[count_tokens].token, token_str);
+	if( token_type == IDENT_TOKEN  &&  is_char_operator(token_str) )
+		token_type = OPERATION_TOKEN;
 	tokens[count_tokens].type = token_type;//_get_token_type(token_str, 0);// <=============-------идентификация токена
 	
 	count_tokens++;
@@ -103,7 +139,15 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 	}
 	
 	//###############################
-	char *str = malloc( MAX_LENGTH_STRING_IN_LANG_PROG );//считывается из файла
+	char *str = malloc( MAX_LENGTH_STRING_IN_LANG_PROG + 2 );//считывается из файла
+	/*	В некоторых местах проверяется 1-2 следующих символа.
+		Чтобы не делать проверки добавим два пробела в конце
+		TODO: избавиться от этого костыля и сделать возможность считывания строк любой длины
+			  или сделать ограничение длины строки (программа будет посимпатичнее)
+	*/
+	str[MAX_LENGTH_STRING_IN_LANG_PROG - 1] = ' ';
+	str[MAX_LENGTH_STRING_IN_LANG_PROG ] = ' ';
+	str[MAX_LENGTH_STRING_IN_LANG_PROG + 1] = '\n';
 	tokens = malloc( sizeof(LEX_TOKEN)* STARTED_COUNT_TOKENS ); // токены для передачи обратно
 	int numerator_capacity = STARTED_COUNT_LINES;
 	numerator = malloc( sizeof(int) * STARTED_COUNT_LINES);
@@ -207,9 +251,16 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 				} else if( isop(this_char) ){
 					if( token_type != OPERATION_TOKEN && token_type != STRING_TOKEN ) {
 						_add_token();
+						//printf("Started operator: %c", this_char);
+						//TODO проверка на выход за пределы
+						//TODO не только здесь
+						
+						//функция get_op() изменяет token_str
+						get_op(this_char, str[pos_in_main_str], str[pos_in_main_str+1], &pos_in_main_str);
+
 						token_type = OPERATION_TOKEN;
+						_add_token();
 					}
-					if( token_type != STRING_TOKEN ) token_str[len_token++] = this_char;//иначе в строке будет дублирование
 				}
 				
 				
@@ -235,12 +286,13 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 			}//other characters
 		}//one string lex
 		if(in_quote){
+			//TODO сделать возможность введения больших строк
 			fprintf(error_stream, "ERROR: no closing quote in string %d:\n  %s", number_str, str);
 			return NULL;
 		}
 		if( numerator[this_line_pos] ) { this_line_pos++; numerator[this_line_pos] = 0; }
 		if(numerator_capacity == this_line_pos + 1) { // расширение numerator`а
-			numerator_capacity *= 2;
+			numerator_capacity *= EXPANSION_NUM;
 			numerator = realloc(numerator, sizeof(int) * numerator_capacity);
 		}
 	
