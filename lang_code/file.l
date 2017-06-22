@@ -1,3 +1,5 @@
-a=7
-b=8
-c=a.square+b**b
+i=0
+while i < 10 :
+	i += 1
+	if i%2 :
+		print i

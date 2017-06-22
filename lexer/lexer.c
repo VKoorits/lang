@@ -78,6 +78,7 @@ int _get_token_type(const char* token_str, const int was_quote){
 
 static LEX_TOKEN *tokens;
 static int* numerator;
+static int* deeper;
 static int count_tokens, len_token, token_type, this_line_pos;
 static int tokens_capacity = STARTED_COUNT_TOKENS;
 static char* token_str;
@@ -159,6 +160,8 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 	tokens = malloc( sizeof(LEX_TOKEN)* STARTED_COUNT_TOKENS ); // токены для передачи обратно
 	int numerator_capacity = STARTED_COUNT_LINES;
 	numerator = malloc( sizeof(int) * STARTED_COUNT_LINES);
+	deeper = malloc(sizeof(int) * STARTED_COUNT_LINES);
+	deeper[0] = 0;
 	numerator[0] = 0;
 	this_line_pos = 0;
 	//###############################
@@ -166,6 +169,7 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 	token_str = malloc(100); // ТОЛЬКО ДЛЯ ПРОТОТИПА
 	token_str[99] = '\0';
 	int number_str = 0;
+	int deep;
 
 	int multyline_comment = false;
 	while( fgets( str, MAX_LENGTH_STRING_IN_LANG_PROG, lang_prog ) ){ number_str++;
@@ -175,6 +179,30 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 		token_type = UNKNOWN_TOKEN;
 		int in_quote = 0;
 		
+		deep = 0;
+		if(!multyline_comment){ // считаем величину отступа
+				if( str[pos_in_main_str] == ' ') {
+					while (str[pos_in_main_str] == ' ') pos_in_main_str++;
+					if( str[pos_in_main_str] == '\n') continue;
+					if( pos_in_main_str % COUNT_SPACE_IN_DEEP != 0 ) {
+						fprintf(error_stream, "ERROR: wrong count space in shift of string:\n  %d:\t%s\n", number_str, str);
+						return NULL;
+					}
+					if( str[pos_in_main_str] == '\t'){
+						fprintf(error_stream, "ERROR: space and tab in shift of string:\n  %d:\t%s\n", number_str, str);
+						return NULL;
+					}
+					deep = pos_in_main_str / 4;
+				} else if( str[pos_in_main_str] == '\t') {
+					while (str[pos_in_main_str] == '\t') pos_in_main_str++;
+					if( str[pos_in_main_str] == '\n') continue;
+					if( str[pos_in_main_str] == ' '){
+						fprintf(error_stream, "ERROR: tab and space in shift of string:\n  %d:\t%s\n", number_str, str);
+						return NULL;
+					}
+					deep = pos_in_main_str;
+				}
+		}
 		
 		while( this_char = str[pos_in_main_str++] ) { // обработка одной строки посимволно
 			if(multyline_comment){
@@ -297,10 +325,24 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 			fprintf(error_stream, "ERROR: no closing quote in string %d:\n  %s", number_str, str);
 			return NULL;
 		}
-		if( numerator[this_line_pos] ) { this_line_pos++; numerator[this_line_pos] = 0; }
+		if( numerator[this_line_pos] ) {
+			if(this_line_pos == 0){
+				if (deep > 0){
+					fprintf(error_stream, "ERROR: file start with shift %d:\n  %s", number_str, str);
+					return NULL;
+				}
+			}else if (deep - deeper[this_line_pos-1] > 1) {
+				fprintf(error_stream, "ERROR: very big shift %d:\n  %s", number_str, str);
+				return NULL;
+			}
+			deeper[this_line_pos] = deep;
+			this_line_pos++;
+			numerator[this_line_pos] = 0;
+		}
 		if(numerator_capacity == this_line_pos + 1) { // расширение numerator`а
 			numerator_capacity *= EXPANSION_NUM;
 			numerator = realloc(numerator, sizeof(int) * numerator_capacity);
+			deeper = realloc(deeper, sizeof(int) * numerator_capacity);
 		}
 	
 	}//file lex
@@ -318,7 +360,7 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 	result->summary_count_tokens = count_tokens;
 	result->count_token_lines = this_line_pos;
 	result->count_tokens = realloc(numerator, sizeof(int) * this_line_pos);
-
+	result->deeper = realloc(deeper, sizeof(int) * this_line_pos);
 	
 	return result;
 }

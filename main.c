@@ -21,7 +21,6 @@ int main(int argc, char* argv[]){
 		ALL_LEX_TOKENS* all_token = lex_analyze("lang_code/file.l", f);
 
 		if(all_token){
-		mark();
 			int k=0;
 			for(int i=0; i< (all_token->count_token_lines); i++){
 				for(int j=0; j < (all_token->count_tokens[i]); j++)

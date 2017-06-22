@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../lexer/lexer.h"
 
 #define START_TOKEN_STACK_SIZE (32)

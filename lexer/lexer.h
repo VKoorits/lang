@@ -1,6 +1,10 @@
 #ifndef _LEXER_H_
 #define _LEXER_H_
 
+//##############################
+#define COUNT_SPACE_IN_DEEP (4)
+//##############################
+
 #define MAX_LENGTH_STRING_IN_LANG_PROG (256)
 #define STARTED_COUNT_TOKENS (64)
 #define STARTED_COUNT_LINES (16)
@@ -68,6 +72,9 @@ typedef struct ALL_LEX_TOKENS {
 	unsigned int summary_count_tokens;
 	unsigned int count_token_lines;
 	unsigned int* count_tokens; // в строке кода
+	
+	//скорее всего deeper лишнее свойство
+	unsigned int* deeper; //отступ строки
 	LEX_TOKEN* tokens;
 } ALL_LEX_TOKENS;
 

@@ -51,8 +51,9 @@ void delete_stack(token_stack* stack) {
 	free(stack);
 }
 
-void print_stack(token_stack* stack) {
-	for(int i=0; i<stack->size; i++)
+void print_stack(token_stack* stack, int deep) {
+	for(int i=0; i<deep; i++) printf("\t");
+	for(int i=0; i < stack->size; i++)
 		printf("%s ", stack->val[i].token);
 	printf("NULL\n");
 }
@@ -154,34 +155,103 @@ void analyze(token_stack* op_stack, token_stack* val_stack, LEX_TOKEN* token){
 	functions[variant-1](op_stack, val_stack, token);
 }
 
+int not_end_logic_expr(LEX_TOKEN* token){
+	return !(token->type == OPERATION_TOKEN && token->token[0] == ':');
+}
+
+static int cnt_for_not_end_line;
+int not_end_line(LEX_TOKEN* token){
+	return cnt_for_not_end_line--;
+}
+
+token_stack* generate_stack(LEX_TOKEN* tokens, int (*not_end)(LEX_TOKEN*)){
+	token_stack* val_stack = make_stack(START_TOKEN_STACK_SIZE);
+	//TODO сделать op_stack постоянным
+	token_stack* op_stack = make_stack(START_OPERATION_STACK_SIZE);
+	int k = 0;
+	
+	while( not_end( &tokens[k] ) ){
+		if (tokens[k].type != OPERATION_TOKEN) 
+			push(val_stack, &tokens[k]);
+		else
+			analyze(op_stack, val_stack, &tokens[k]);
+		k++;		
+	}
+	
+	while( peek(op_stack) ) {
+		int ind = get_op_index(peek(op_stack));
+		if( ind >= EQUAL && ind <= DOT)
+			push(val_stack, pop(op_stack));
+		else
+			break;
+	}
+	delete_stack( op_stack );
+	return val_stack;
+}
+
+//TODO когда сделаешь хеш, измени механизмы поиска с массивов на статические хэши если это даст прирост скорости
+static char* deep_words[] = {"while", "if", "else", "elseif", "sub"};
+
+int deep_word(char* word) {
+	for(int i = 0; i < sizeof(deep_words)/sizeof(char*); ++i)
+		if( !strcmp(word, deep_words[i]) )
+			return i+1;
+	return 0;
+	
+}
 
 //https://master.virmandy.net/perevod-iz-infiksnoy-notatsii-v-postfiksnuyu-obratnaya-polskaya-zapis/
 AST_root* build_AST(ALL_LEX_TOKENS* all_token){
-	token_stack* val_stack = make_stack(START_TOKEN_STACK_SIZE);
-	token_stack*  op_stack = make_stack(START_OPERATION_STACK_SIZE);
 	LEX_TOKEN* tokens = all_token->tokens;
-	int k = 0;
-	for(int str_num = 1; str_num <= all_token->count_token_lines; ++str_num) {
-		for(int tok_num = 1; tok_num <= all_token->count_tokens[str_num-1]; ++tok_num, ++k){
-			if (tokens[k].type != OPERATION_TOKEN) 
-				push(val_stack, &tokens[k]);
-			else
-				analyze(op_stack, val_stack, &tokens[k]);			
-			
-		}
+	int cnt_line = 0;
+	int deep = 0;
+	for(int str_num = 0; str_num < all_token->count_token_lines; ++str_num) {
+		cnt_line = all_token->count_tokens[str_num];
 		
-		while( peek(op_stack) ) {
-			//print_token(peek(op_stack), stdout);
-			int ind = get_op_index(peek(op_stack));
-			if( ind >= EQUAL && ind <= DOT)
-				push(val_stack, pop(op_stack));
-			else
-				break;
-			
+		/*
+			deep string - строка, которая увеличивает отступ, глубину
+			например
+			  --if a < b :
+			  --	print a
+			deep dtring  должна оканчиваться двоеточием
+			deep word - одно из ключевых слов с которого
+			должна начинаться deep string (while, if, else...)
+		*/
+		if ( deep_word(tokens->token) ) {
+			if( tokens[cnt_line-1].type != OPERATION_TOKEN || tokens[cnt_line-1].token[0] != ':'){
+				printf("ERROR: Deep string must end with ':'\nnot empty str %d\n", str_num);
+				return NULL;
+			} else { //deep string по обоим параметрам (deep word and :)
+				++deep;
+				printf("head|");
+				cnt_for_not_end_line = cnt_line-2;
+				print_stack(generate_stack( tokens+1, not_end_line ), deep-1);
+			}
+		} else {			
+			cnt_for_not_end_line = cnt_line;
+			token_stack* stack = generate_stack( tokens, not_end_line );
+			print_stack( stack, deep );
 		}
-		print_stack(val_stack);
-		
-		val_stack->size = 0;
-		op_stack->size = 0;
+		tokens += all_token->count_tokens[str_num];
 	}
+	
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
