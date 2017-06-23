@@ -28,7 +28,7 @@ LEX_TOKEN* pop(token_stack* stack) {
 void push(token_stack* stack, LEX_TOKEN* el) {
 	if (stack->size == stack->capacity){
 		stack->capacity *= EXPANSION_NUM;
-		stack->val = realloc(stack->val, stack->capacity);
+		stack->val = realloc(stack->val, stack->capacity*sizeof(LEX_TOKEN));
 	}
 	stack->val[ stack->size++ ] = *el;
 }
@@ -51,12 +51,70 @@ void delete_stack(token_stack* stack) {
 	free(stack);
 }
 
-void print_stack(token_stack* stack, int deep) {
-	for(int i=0; i<deep; i++) printf("\t");
-	for(int i=0; i < stack->size; i++)
-		printf("%s ", stack->val[i].token);
+void print_stack(token_stack* stack, int n) {
+	int num = n;
+	for(int i=0; i < stack->size; i++){
+		if(stack->val[i].type == EXPR_STACK_TOKEN)
+			printf("EXPR_%d ", num++);
+		else if( stack->val[i].type == TRUE_BODY_TOKEN )
+			printf("T_BODY_%d ", num++);
+		else
+			printf("%s ", stack->val[i].token);
+	}
 	printf("NULL\n");
+	int num_cp = n;
+	for(int i=0; i < stack->size; i++)
+		if(stack->val[i].type == EXPR_STACK_TOKEN){
+			printf("EXPR_%d :", num_cp++);
+			print_stack( ((token_stack*)(stack->val[i].token)), num);
+			//printf("\n");
+		} else if (stack->val[i].type == TRUE_BODY_TOKEN ) {
+			printf("T_BODY_%d :", num_cp++);
+			print_stack( ((token_stack*)(stack->val[i].token)), num);
+		}
 }
+
+//TODO отвратительная реализация, переделай обязательно
+
+typedef struct stack_stack {
+	token_stack* val;
+	int size;
+	int capacity;
+} stack_stack;
+
+token_stack* stack_pop(stack_stack* stack) {
+	if ( stack->size > 0 ) 
+		return &stack->val[--stack->size];
+	return NULL;
+}
+void stack_push(stack_stack* stack, token_stack* el) {
+	if (stack->size == stack->capacity){
+		stack->capacity *= EXPANSION_NUM;
+		stack->val = realloc(stack->val, stack->capacity*sizeof(token_stack));
+	}
+	stack->val[ stack->size++ ] = *el;
+}
+token_stack* stack_peek(stack_stack* stack) {
+	if ( stack->size > 0 ) 
+		return &stack->val[stack->size-1];
+	return NULL;
+}
+
+stack_stack* stack_make_stack(int capacity) {
+	stack_stack* stack = malloc(sizeof(stack_stack));
+	stack->size = 0;
+	stack->capacity = capacity;
+	stack->val = malloc(capacity * sizeof(token_stack));
+	return stack;
+}
+
+void stack_delete_stack(token_stack* stack) {
+	free(stack->val);
+	free(stack);
+}
+
+
+
 
 
 #define EMPTY 				(100)
@@ -65,22 +123,7 @@ void print_stack(token_stack* stack, int deep) {
 
 // x >>= man . age + (2+3**4)
 int get_condition(int last_code, int this_code) {
-	/*
-	
-	//	  |  =  +  -  *  /  %  .  (  )
-	const int variants[9][10] = {
-		{ 4, 1, 1, 1, 1, 1, 1, 1, 1, 5 },// |
-		{ 2, 2, 1, 1, 1, 1, 1, 1, 1, 2 },// =
-		{ 2, 2, 2, 2, 1, 1, 1, 1, 1, 2 },// +
-		{ 2, 2, 2, 2, 1, 1, 1, 1, 1, 2 },// -
-		{ 2, 2, 2, 2, 2, 2, 2, 1, 1, 2 },// *
-		{ 2, 2, 2, 2, 2, 2, 2, 1, 1, 2 },// /
-		{ 2, 2, 2, 2, 2, 2, 2, 1, 1, 2 },// %
-		{ 2, 2, 2, 2, 2, 2, 2, 2, 1, 2 },// .
-		{ 5, 1, 1, 1, 1, 1, 1, 1, 1, 3 },// (
-	};
-	
-	*/
+
 	if( last_code == EMPTY ) {
 		if(this_code == CLOSED_BRACKET)
 			return 5;
@@ -150,8 +193,6 @@ void analyze(token_stack* op_stack, token_stack* val_stack, LEX_TOKEN* token){
 	int this_code = get_op_index( token );
 	
 	int variant = get_condition(last_code, this_code);	
-	//printf("VARIANT: %d\n", variant);
-	//printf("Operator => %s this_code => %d, last_code=> %d\n", token->token, this_code, last_code);
 	functions[variant-1](op_stack, val_stack, token);
 }
 
@@ -164,8 +205,8 @@ int not_end_line(LEX_TOKEN* token){
 	return cnt_for_not_end_line--;
 }
 
-token_stack* generate_stack(LEX_TOKEN* tokens, int (*not_end)(LEX_TOKEN*)){
-	token_stack* val_stack = make_stack(START_TOKEN_STACK_SIZE);
+//https://master.virmandy.net/perevod-iz-infiksnoy-notatsii-v-postfiksnuyu-obratnaya-polskaya-zapis/
+token_stack* generate_stack(token_stack* val_stack, LEX_TOKEN* tokens, int (*not_end)(LEX_TOKEN*)){
 	//TODO сделать op_stack постоянным
 	token_stack* op_stack = make_stack(START_OPERATION_STACK_SIZE);
 	int k = 0;
@@ -200,11 +241,16 @@ int deep_word(char* word) {
 	
 }
 
-//https://master.virmandy.net/perevod-iz-infiksnoy-notatsii-v-postfiksnuyu-obratnaya-polskaya-zapis/
 AST_root* build_AST(ALL_LEX_TOKENS* all_token){
 	LEX_TOKEN* tokens = all_token->tokens;
+	
+	stack_stack* big_stack = stack_make_stack(START_DEEP_STACK_SIZE);
+	stack_push( big_stack, make_stack(START_TOKEN_STACK_SIZE) );//добавляем main_stack
+	
+	token_stack* deep_stack = make_stack(START_DEEP_STACK_SIZE);	
 	int cnt_line = 0;
 	int deep = 0;
+	int where = 0;
 	for(int str_num = 0; str_num < all_token->count_token_lines; ++str_num) {
 		cnt_line = all_token->count_tokens[str_num];
 		
@@ -217,24 +263,50 @@ AST_root* build_AST(ALL_LEX_TOKENS* all_token){
 			deep word - одно из ключевых слов с которого
 			должна начинаться deep string (while, if, else...)
 		*/
-		if ( deep_word(tokens->token) ) {
+		
+		while(deep_stack->size > all_token->deeper[ str_num ] ){
+			//снимем верхний стек
+			token_stack* top = stack_pop( big_stack );
+			//кладем его в стек на уровень ниже
+			LEX_TOKEN* top_stack_token = malloc(sizeof(token_stack));
+			top_stack_token->type = TRUE_BODY_TOKEN;
+			top_stack_token->info = 0;
+			top_stack_token->token = (char*)top;
+				
+			push( stack_peek(big_stack), top_stack_token);
+			
+			//сразу за ним оператор блока (if, while...)
+			push( stack_peek( big_stack ), pop(deep_stack));
+		}
+		int deep_word_num;
+		if ( deep_word_num = deep_word(tokens->token) ) {
 			if( tokens[cnt_line-1].type != OPERATION_TOKEN || tokens[cnt_line-1].token[0] != ':'){
 				printf("ERROR: Deep string must end with ':'\nnot empty str %d\n", str_num);
 				return NULL;
 			} else { //deep string по обоим параметрам (deep word and :)
-				++deep;
-				printf("head|");
+				push( deep_stack, tokens);
+				//TODO возможно нужно избавиться от передачи указателя на функцию
 				cnt_for_not_end_line = cnt_line-2;
-				print_stack(generate_stack( tokens+1, not_end_line ), deep-1);
+				token_stack* expr_stack = make_stack( START_EXPR_STACK_SIZE );
+				generate_stack(expr_stack, tokens+1, not_end_line );
+				
+				LEX_TOKEN* expr_token = malloc(sizeof(LEX_TOKEN));
+				expr_token->type = EXPR_STACK_TOKEN;
+				expr_token->info = deep_word_num;
+				expr_token->token = (char*)expr_stack;
+				
+				push( stack_peek(big_stack), expr_token);
+				stack_push( big_stack, make_stack(START_TOKEN_STACK_SIZE) );// тело для if, while, def...
+				
 			}
 		} else {			
 			cnt_for_not_end_line = cnt_line;
-			token_stack* stack = generate_stack( tokens, not_end_line );
-			print_stack( stack, deep );
+			generate_stack( stack_peek(big_stack), tokens, not_end_line );
 		}
 		tokens += all_token->count_tokens[str_num];
 	}
-	
+	printf("BIG_STACK_SIZE: %d\n", big_stack->size);
+	print_stack( stack_peek(big_stack), 1 );
 }
 
 

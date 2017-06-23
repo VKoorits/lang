@@ -166,7 +166,7 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 	this_line_pos = 0;
 	//###############################
 	count_tokens = 0;
-	token_str = malloc(100); // ТОЛЬКО ДЛЯ ПРОТОТИПА
+	token_str = malloc(2000); // ТОЛЬКО ДЛЯ ПРОТОТИПА
 	token_str[99] = '\0';
 	int number_str = 0;
 	int deep;

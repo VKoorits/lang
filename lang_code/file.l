@@ -1,5 +1,5 @@
-i=0
-while i < 10 :
-	i += 1
-	if i%2 :
-		print i
+i=2**5
+while i > 0:
+	if i % 2:
+		print i**2
+print "ok"
