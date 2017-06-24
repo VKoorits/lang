@@ -76,7 +76,23 @@ char** file_eq(char* got_path, char* expected_path) {
 	return res;
 }
 
-int fio_test(char* path, char* filename) { 
+void test_lexer(char* filename, FILE* out){
+	ALL_LEX_TOKENS* all_token = lex_analyze( filename, out);
+	if(all_token){
+		write_tokens(out, all_token);
+	}
+}
+void test_AST_builder(char* filename, FILE* out){
+	ALL_LEX_TOKENS* all_token = lex_analyze( filename, out);
+	if(all_token){
+		token_stack* big_stack = build_AST(all_token);
+		if(big_stack){
+			print_stack( out, big_stack, 0);
+		}
+	}
+}
+
+int fio_test(char* path, char* filename, void (*tested_func)(char*,FILE*) ) { 
 	/*
 		file input ouput _ test
 		вывод перенаправляется в файл и сравнивается с ожидаемым файлом
@@ -90,10 +106,7 @@ int fio_test(char* path, char* filename) {
 		return 0;
 	}
 	
-	ALL_LEX_TOKENS* all_token = lex_analyze( full_input_filename, out);
-	if(all_token){
-		write_tokens(out, all_token);
-	}
+	tested_func(full_input_filename, out);
 	fclose(out);	
 	
 	
@@ -113,7 +126,7 @@ int fio_test(char* path, char* filename) {
 
 int test() {
 	//LEXER
-	char* filenames[] = {
+	char* lexer_filenames[] = {
 		"two_point_in_num",
 		"no_closing_quote",
 		"unclosed_comment",
@@ -126,9 +139,24 @@ int test() {
 		"big_shift",
 		"shift_start"
 	};
-	for(int i = 0; i < sizeof(filenames) / sizeof(char*); i++) {
-		printf("TEST %25s: ", filenames[i]);	
-		int res = fio_test("lexer/", filenames[i]);
+	printf("LEXR_TEST:\n");
+	for(int i = 0; i < sizeof(lexer_filenames) / sizeof(char*); i++) {
+		printf("	TEST %25s: ", lexer_filenames[i]);	
+		int res = fio_test("lexer/", lexer_filenames[i], test_lexer);
 		if(res == 1) printf("OK\n");
 	}
+	for(int i = 0; i<40; i++) printf("="); printf("\n");
+	
+	//AST
+	char* AST_filenames[] = {
+		"normal_script"
+	};
+	
+	printf("AST_TEST:\n");
+	for(int i = 0; i < sizeof(AST_filenames) / sizeof(char*); i++) {
+		printf("	TEST %25s: ", AST_filenames[i]);	
+		int res = fio_test("AST/", AST_filenames[i], test_AST_builder);
+		if(res == 1) printf("OK\n");
+	}
+	printf("\n");
 }

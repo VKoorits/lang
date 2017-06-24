@@ -14,11 +14,6 @@ TODO присваивание
 TODO уменьшение стека автоматическое ???
 */
 
-typedef struct token_stack {
-	LEX_TOKEN* val;
-	int size;
-	int capacity;
-} token_stack;
 
 LEX_TOKEN* pop(token_stack* stack) {
 	if ( stack->size > 0 ) 
@@ -51,36 +46,27 @@ void delete_stack(token_stack* stack) {
 	free(stack);
 }
 
-void print_stack(token_stack* stack, int n) {
+void print_stack(FILE* out, token_stack* stack, int n) {
 	int num = n;
 	for(int i=0; i < stack->size; i++){
 		if(stack->val[i].type == EXPR_STACK_TOKEN)
-			printf("EXPR_%d ", num++);
+			fprintf(out, "EXPR_%d ", num++);
 		else if( stack->val[i].type == TRUE_BODY_TOKEN )
-			printf("T_BODY_%d ", num++);
+			fprintf(out, "T_BODY_%d ", num++);
 		else
-			printf("%s ", stack->val[i].token);
+			fprintf(out, "%s ", stack->val[i].token);
 	}
-	printf("NULL\n");
+	fprintf(out, "NULL\n");
 	int num_cp = n;
 	for(int i=0; i < stack->size; i++)
 		if(stack->val[i].type == EXPR_STACK_TOKEN){
-			printf("EXPR_%d :", num_cp++);
-			print_stack( ((token_stack*)(stack->val[i].token)), num);
-			//printf("\n");
+			fprintf(out, "EXPR_%d :", num_cp++);
+			print_stack( out, ((token_stack*)(stack->val[i].token)), num);
 		} else if (stack->val[i].type == TRUE_BODY_TOKEN ) {
-			printf("T_BODY_%d :", num_cp++);
-			print_stack( ((token_stack*)(stack->val[i].token)), num);
+			fprintf(out, "T_BODY_%d :", num_cp++);
+			print_stack( out, ((token_stack*)(stack->val[i].token)), num);
 		}
 }
-
-//TODO отвратительная реализация, переделай обязательно
-
-typedef struct stack_stack {
-	token_stack* val;
-	int size;
-	int capacity;
-} stack_stack;
 
 token_stack* stack_pop(stack_stack* stack) {
 	if ( stack->size > 0 ) 
@@ -241,7 +227,7 @@ int deep_word(char* word) {
 	
 }
 
-AST_root* build_AST(ALL_LEX_TOKENS* all_token){
+token_stack* build_AST(ALL_LEX_TOKENS* all_token){
 	LEX_TOKEN* tokens = all_token->tokens;
 	
 	stack_stack* big_stack = stack_make_stack(START_DEEP_STACK_SIZE);
@@ -281,6 +267,7 @@ AST_root* build_AST(ALL_LEX_TOKENS* all_token){
 		int deep_word_num;
 		if ( deep_word_num = deep_word(tokens->token) ) {
 			if( tokens[cnt_line-1].type != OPERATION_TOKEN || tokens[cnt_line-1].token[0] != ':'){
+				//TODO printf -> fprintf
 				printf("ERROR: Deep string must end with ':'\nnot empty str %d\n", str_num);
 				return NULL;
 			} else { //deep string по обоим параметрам (deep word and :)
@@ -305,24 +292,8 @@ AST_root* build_AST(ALL_LEX_TOKENS* all_token){
 		}
 		tokens += all_token->count_tokens[str_num];
 	}
-	printf("BIG_STACK_SIZE: %d\n", big_stack->size);
-	print_stack( stack_peek(big_stack), 1 );
+	return stack_peek(big_stack);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -19,16 +19,20 @@
 #define IN_TRUE		(3)
 #define IN_FALSE	(4)
 
-typedef struct AST_root {
-	void* branches;
-	int cnt_branches;
-} AST_root;
+typedef struct token_stack {
+	LEX_TOKEN* val;
+	int size;
+	int capacity;
+} token_stack;
 
+//TODO вынеси универсвльный стэк в отдельную папку и переделай вё на него
+typedef struct stack_stack {
+	token_stack* val;
+	int size;
+	int capacity;
+} stack_stack;
 
-typedef struct AST_leaf{
-	// ####	
-} AST_leaf;
-
-AST_root* build_AST(ALL_LEX_TOKENS*);
+token_stack* build_AST(ALL_LEX_TOKENS*);
+void print_stack(FILE*, token_stack*, int);
 
 #endif
