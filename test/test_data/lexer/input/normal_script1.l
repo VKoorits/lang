@@ -8,3 +8,9 @@ for i in nums:
 	but in random order
 */
 print nums
+_var1 = "say \"cheese'"
+_var1 = 'say "cheese\''
+_var1 = 'say \'cheese"'
+_var1 = "say 'cheese\""
+
+_var2 = 159_267_843.000_000_1

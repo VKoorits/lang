@@ -124,6 +124,8 @@ void _add_token(){
 	strcpy( tokens[count_tokens].token, token_str);
 	if( token_type == IDENT_TOKEN  &&  is_char_operator(token_str) )
 		token_type = OPERATION_TOKEN;
+	if( token_type == INT_NUM_TOKEN && count_point_in_num > 0 )
+		token_type = FLOAT_NUM_TOKEN;
 	tokens[count_tokens].type = token_type;//_get_token_type(token_str, 0);// <=============-------идентификация токена
 	
 	if(token_type == OPERATION_TOKEN)
@@ -185,6 +187,7 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 					while (str[pos_in_main_str] == ' ') pos_in_main_str++;
 					if( str[pos_in_main_str] == '\n') continue;
 					if( pos_in_main_str % COUNT_SPACE_IN_DEEP != 0 ) {
+						//если используются пробелы, то их кол-во должно быть пропорционально COUNT_SPACE_IN_DEEP
 						fprintf(error_stream, "ERROR: wrong count space in shift of string:\n  %d:\t%s\n", number_str, str);
 						return NULL;
 					}
@@ -309,7 +312,7 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 						token_type = STRING_TOKEN;
 					} else token_str[len_token++] = this_char;
 				} else if (this_char == '_' && token_type != INT_NUM_TOKEN) {
-					if ( token_type == OPERATION_TOKEN ) {
+					if ( token_type == OPERATION_TOKEN || token_type == UNKNOWN_TOKEN ) {
 						_add_token();
 						token_type = IDENT_TOKEN;
 					}

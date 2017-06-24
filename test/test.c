@@ -59,8 +59,6 @@ char** file_eq(char* got_path, char* expected_path) {
 				fgets(got_str, MAX_LENGTH_STRING_IN_TOKEN_FILE, got);
 				fgets(exp_str, MAX_LENGTH_STRING_IN_TOKEN_FILE, exp);
 				if( strcmp(got_str, exp_str) ) {
-					printf("Why if I print not some str here, exp_str crashed?\n");
-					printf("\n_");
 					res[0] = (char*)num_str;
 					res[1] = got_str;
 					res[2] = exp_str;
@@ -121,7 +119,12 @@ int test() {
 		"unclosed_comment",
 		"wrong_ident_token",
 		"unreal_file",
-		"normal_script"
+		"normal_script1",
+		"wrong_space",
+		"tab_and_space",
+		"space_and_tab",
+		"big_shift",
+		"shift_start"
 	};
 	for(int i = 0; i < sizeof(filenames) / sizeof(char*); i++) {
 		printf("TEST %25s: ", filenames[i]);	

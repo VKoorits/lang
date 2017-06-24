@@ -1,0 +1,3 @@
+ERROR: tab and space in shift of string:
+  3:		    print "ok" #tab and 4 space
+

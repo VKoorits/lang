@@ -1,0 +1,2 @@
+ERROR: file start with shift 1:
+  	a = 7

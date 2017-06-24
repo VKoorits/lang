@@ -1,0 +1,3 @@
+ERROR: wrong count space in shift of string:
+  5:	     print "a<10"
+
