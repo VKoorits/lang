@@ -1,37 +1,26 @@
-#include <stdio.h>
-#include <malloc.h>
-#include <ctype.h>
-#include <string.h>
 #include "lexer.h"
 
 /*
 TODO TODO TODO: разбить на lex_analyze на подфункции
 TODO защита от длинных строк в программе
-TODO реализация INT_TOKEN and FLOAT_TOKEN
-TODO отдельный токен под каждый спец символ ? (нужно ли??? может наоборот, как можно больше в один)
-													оставить пока так
-TODO обработка отступов
+
 TODO приравнивать ; к переносу строки
 */
 
-char* operators_3[] = {"**=", "//=", "<<=", ">>="};
-int 	property_3[] = {EQUAL, EQUAL, EQUAL, EQUAL};
-char* operators_2[] = {"+=", "-=", "*=", "/=", "%=", "**", "//",">>", "<<",  "&&",   "^^",  "||",  "->", ">=", "<=", "==", "!="};
-int 	property_2[] = {EQUAL,EQUAL,EQUAL,EQUAL,EQUAL, POW, MUL, SHIFT,SHIFT,LOG_AND,LOG_AND,LOG_OR, -1,   CMP,  CMP,  CMP,  CMP};
-char* char_operators[] = {"not", "and",   "or", "eq", "in", "xor"};
-int		property_char[]= { NOT, LOG_AND, LOG_OR, CMP, IN,   LOG_AND};
-static const char operations[] = {'+', '-', '*', '/', '%', '.', ',',  '=',  '!', '^',   '>', '<', '&',    '|', '(', '[', '{', '}', ']', ')', ';',':' };
-int 	property_1[] = 			 {ADD, ADD, MUL, MUL, MUL, DOT, -1,  EQUAL, NOT,BIT_XOR,CMP, CMP,BIT_AND,BIT_OR, -1, -1,  -1,  -1,  -1,   -1, -1, -1 };
-int is_char_operator(char* op){
-	for(int i=0; i < sizeof(char_operators)/sizeof(char*); i++)
-		if( !strcmp(op, char_operators[i]) )
-			return true;
-	return false;
-}
-								 
+
+//##################### GLOBAL_VARIABLES
+
+static LEX_TOKEN *tokens;
+static int* numerator;
+static int* deeper;
+static int count_tokens, len_token, token_type, this_line_pos;
+static int tokens_capacity = STARTED_COUNT_TOKENS;
+static char* token_str;
+static int count_point_in_num = 0;
+static int priorety; //для записи приоритета оператора
+//#####################
 
 void mark() { printf("\t==-==\n\t  |\n\t==-==\n");}
-
 
 
 void print_token(const LEX_TOKEN* tok, FILE* output_stream){
@@ -55,58 +44,8 @@ void print_token(const LEX_TOKEN* tok, FILE* output_stream){
 }
 
 
-int isop(int character) {
-	//operations - global var in this file
-	for(int i=0; i < sizeof(operations); i++)
-		if(character == operations[i])
-			return property_1[i];
-	return false;
-}
-
-int isreserved() {
-
-}
-
-
-int _get_token_type(const char* token_str, const int was_quote){
-	if(was_quote)
-		return was_quote;
-	return 42;
-}	
-
-//#####################
-
-static LEX_TOKEN *tokens;
-static int* numerator;
-static int* deeper;
-static int count_tokens, len_token, token_type, this_line_pos;
-static int tokens_capacity = STARTED_COUNT_TOKENS;
-static char* token_str;
-static int count_point_in_num = 0;
-static int priorety; //для записи приоритета оператора
-
-//#####################
-
-int get_op(char first, char second, char third, int* offset, const int priorety) {
-	token_str[0] = first; token_str[1] = second; token_str[2] = third; token_str[3] = '\0';
-	for(int i = 0; i < sizeof(operators_3)/sizeof(char*); ++i)
-		if( !strcmp(operators_3[i], token_str) ) {
-			*offset += 2;
-			len_token = 3;
-			return property_3[i];
-		}
-	token_str[2] = '\0';
-	for(int i = 0; i < sizeof(operators_2)/sizeof(char*); ++i)
-		if( !strcmp(operators_2[i], token_str) ) {
-			*offset += 1;
-			len_token = 2;		
-			return property_2[i];
-		}
-	token_str[1] = '\0';
-	len_token = 1;
-	return priorety;
-}
-
+//TODO переделать в стэк
+//добавляет токен в стэк
 void _add_token(){
 	if( len_token == 0 && token_type != STRING_TOKEN)
 		return;
@@ -294,7 +233,9 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 						//TODO не только здесь
 						
 						//функция get_op() изменяет token_str
-						priorety = get_op(this_char, str[pos_in_main_str], str[pos_in_main_str+1], &pos_in_main_str, priorety);
+						token_str[0] = this_char; token_str[1] = str[pos_in_main_str];
+						token_str[2] = str[pos_in_main_str+1]; token_str[3] = '\0';
+						priorety = get_op(&pos_in_main_str, priorety, token_str, &len_token);
 
 						token_type = OPERATION_TOKEN;
 						_add_token();
@@ -367,4 +308,3 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 	
 	return result;
 }
-

@@ -5,7 +5,6 @@
 
 /*
 TODO: убрать ограничение на длину строки MAX_LENGTH_STRING_IN_TOKEN_FILE, т.к токеном может быть большая строка
-TODO: printf("Why if I print not some str here, exp_str crashed?\n");
 */
 
 #define MAX_LENGTH_STRING_IN_TOKEN_FILE (512)
@@ -85,7 +84,7 @@ void test_lexer(char* filename, FILE* out){
 void test_AST_builder(char* filename, FILE* out){
 	ALL_LEX_TOKENS* all_token = lex_analyze( filename, out);
 	if(all_token){
-		token_stack* big_stack = build_AST(all_token);
+		stack_t* big_stack = build_AST(all_token);
 		if(big_stack){
 			print_stack( out, big_stack, 0);
 		}

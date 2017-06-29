@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../lexer/lexer.h"
+#include "../data_struct/data_struct.h"
 
 #define START_DEEP (8)
 
@@ -19,20 +20,12 @@
 #define IN_TRUE		(3)
 #define IN_FALSE	(4)
 
-typedef struct token_stack {
-	LEX_TOKEN* val;
-	int size;
-	int capacity;
-} token_stack;
+#define EMPTY (100)
+#define OPEN_BRACKET (101)
+#define CLOSED_BRACKET (102)
 
-//TODO вынеси универсвльный стэк в отдельную папку и переделай вё на него
-typedef struct stack_stack {
-	token_stack* val;
-	int size;
-	int capacity;
-} stack_stack;
 
-token_stack* build_AST(ALL_LEX_TOKENS*);
-void print_stack(FILE*, token_stack*, int);
+stack_t* build_AST(ALL_LEX_TOKENS*);
+void print_stack(FILE*, stack_t*, int);
 
 #endif

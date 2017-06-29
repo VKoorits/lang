@@ -20,8 +20,13 @@ int main(int argc, char* argv[]){
 		FILE* f = stderr;
 		ALL_LEX_TOKENS* all_token = lex_analyze("lang_code/file.l", f);
 		if(all_token){
-			token_stack* big_stack = build_AST(all_token);			
+			stack_t* big_stack = build_AST(all_token);	
+					
 		}
+
+
+
+
 
 		//#### ####
 		if(all_token){
@@ -32,7 +37,7 @@ int main(int argc, char* argv[]){
 				printf("=================================\n");
 			}
 			printf("%d\n\n", all_token->summary_count_tokens);
-			token_stack* big_stack = build_AST(all_token);
+			stack_t* big_stack = build_AST(all_token);
 			if(big_stack){
 				print_stack(stdout, big_stack, 0);
 			}

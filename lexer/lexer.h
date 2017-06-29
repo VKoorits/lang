@@ -1,6 +1,11 @@
 #ifndef _LEXER_H_
 #define _LEXER_H_
 
+#include <stdio.h>
+#include <malloc.h>
+#include <ctype.h>
+#include <string.h>
+
 //##############################
 #define COUNT_SPACE_IN_DEEP (4)
 //##############################
@@ -32,22 +37,7 @@
 #define true 1
 #define false 0
 
-/*
-приоритет операторов (от наибольшего к наименьшему)
-	. (оператор доступа)
-	in
-	! not
-	**
-	* / // %
-	+ -
-	<< >>
-	eq < <= >= >
-	& ^
-	|
-	&& and ^^ xor
-	|| or
-	= += -= *= /= //= **= %= 
-*/
+
 #define EQUAL 	(1)
 #define LOG_OR	(2)
 #define LOG_AND (3)
@@ -64,7 +54,6 @@
 #define DOT		(14)
 
 
-
 typedef struct LEX_TOKEN {
 	short type;
 	short info;//для операций приоритет
@@ -75,12 +64,10 @@ typedef struct ALL_LEX_TOKENS {
 	unsigned int summary_count_tokens;
 	unsigned int count_token_lines;
 	unsigned int* count_tokens; // в строке кода
-	
-	//скорее всего deeper лишнее свойство
 	unsigned int* deeper; //отступ строки
 	LEX_TOKEN* tokens;
 } ALL_LEX_TOKENS;
-
+#include "../syntax/syntax.h"
 void print_token(const LEX_TOKEN*, FILE*);
 ALL_LEX_TOKENS* lex_analyze(const char*, FILE*);
 void mark(void);
