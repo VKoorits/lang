@@ -6,7 +6,7 @@
 если строка длинная, то при переносе ставить спец символ
 	TODO придумать какой спецсимвол, например слеш, решётка или собака
 
-TODO уменьшение стека автоматическое ???
+TODO избавиться от образования пустого стэка при обработке 'else'
 */
 
 
@@ -21,6 +21,8 @@ void print_stack(FILE* out, stack_t* stack, int n) {
 			fprintf(out, "EXPR_%d ", num++);
 		else if( TOKEN_I->type == TRUE_BODY_TOKEN )
 			fprintf(out, "T_BODY_%d ", num++);
+		else if( TOKEN_I->type == FALSE_BODY_TOKEN )
+			fprintf(out, "F_BODY_%d ", num++);
 		else
 			fprintf(out, "%s ", TOKEN_I->token);
 	}
@@ -32,6 +34,9 @@ void print_stack(FILE* out, stack_t* stack, int n) {
 			print_stack( out, (stack_t*)TOKEN_I->token, num);//*/*/*
 		} else if (TOKEN_I->type == TRUE_BODY_TOKEN ) {
 			fprintf(out, "T_BODY_%d :", num_cp++);
+			print_stack( out, (stack_t*)TOKEN_I->token, num);
+		} else if (TOKEN_I->type == FALSE_BODY_TOKEN ) {
+			fprintf(out, "F_BODY_%d :", num_cp++);
 			print_stack( out, (stack_t*)TOKEN_I->token, num);
 		}
 }
@@ -155,6 +160,7 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 	stack_t* deep_stack = stack_new();
 	int cnt_line = 0;
 	int deep = 0;
+	int can_else = 0;
 	for(int str_num = 0; str_num < all_token->count_token_lines; ++str_num) {
 		cnt_line = all_token->count_tokens[str_num];
 
@@ -180,7 +186,21 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 			st_push( st_peek(big_stack), top_stack_token);
 
 			//сразу за ним оператор блока (if, while...)
-			st_push( st_peek( big_stack ), st_pop(deep_stack));
+			LEX_TOKEN* tok = st_pop(deep_stack);
+			
+			if( !strcmp(tok->token, "if") )
+				can_else = 1;
+			//TODO сделать эти операции до добавления, а то гоняешь туда-обратно
+			if( !strcmp(tok->token, "else") ) {
+				LEX_TOKEN* false_body = st_pop( st_peek(big_stack) );
+				false_body->type = FALSE_BODY_TOKEN;
+				st_pop( st_peek(big_stack) );//else expr
+				LEX_TOKEN* if_token = st_pop( st_peek(big_stack) );
+				
+				st_push( st_peek(big_stack), false_body );
+				st_push( st_peek(big_stack), if_token );				
+			} else
+				st_push( st_peek( big_stack ), tok);
 		}
 		int deep_word_num;
 		if ( deep_word_num = deep_word(tokens->token) ) {
@@ -189,6 +209,15 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 				printf("ERROR: Deep string must end with ':'\nnot empty str %d\n", str_num);
 				return NULL;
 			} else { //deep string по обоим параметрам (deep word and :)
+				if(deep_word_num == 3 )
+					if( !can_else ) {
+						printf("ERROR: expectedd 'if' before 'else' construction\nnot empty str %d\n", str_num);
+						return NULL;
+					} else if ( cnt_line != 2 ){ // если строка содержит else, то : и ничего более 
+						printf("ERROR: wrong 'else' construction\nnot empty str %d\n", str_num);
+						return NULL;
+					}
+				
 				st_push( deep_stack, tokens);
 				//TODO возможно нужно избавиться от передачи указателя на функцию
 				cnt_for_not_end_line = cnt_line-2;
@@ -202,12 +231,14 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 
 				st_push( st_peek(big_stack), expr_token);
 				st_push( big_stack, stack_new() );// тело для if, while, def...
+				
 
 			}
 		} else {
 			cnt_for_not_end_line = cnt_line;
 			generate_stack( st_peek(big_stack), tokens, not_end_line );
 		}
+		can_else = 0;
 		tokens += all_token->count_tokens[str_num];
 	}
 	return st_peek(big_stack);
