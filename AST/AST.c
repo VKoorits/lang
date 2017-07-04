@@ -1,19 +1,20 @@
 #include "AST.h"
 
-
 /*
-предполагается, что каждая строка - законченное выражение
-если строка длинная, то при переносе ставить спец символ
-	TODO придумать какой спецсимвол, например слеш, решётка или собака
-
+TODO придумать какой спецсимвол, например слеш, решётка или собака
+TODO сделать обработку скобок, их можно вставлять куда и сколько угодно 
 TODO избавиться от образования пустого стэка при обработке 'else'
 */
 
-
-
-
+//##################### GLOBAL_VARIABLES
+hash_t* functions = NULL;
+//#####################
 
 void print_stack(FILE* out, stack_t* stack, int n) {
+	if( !stack ){
+		fprintf(out, "EMPTY_STACK\n");
+		return;
+	}
   #define TOKEN_I ((LEX_TOKEN*)stack->val[i])
 	int num = n;
 	for(int i=0; i < stack->size; i++){
@@ -31,7 +32,7 @@ void print_stack(FILE* out, stack_t* stack, int n) {
 	for(int i=0; i < stack->size; i++)
 		if(TOKEN_I->type == EXPR_STACK_TOKEN){
 			fprintf(out, "EXPR_%d :", num_cp++);
-			print_stack( out, (stack_t*)TOKEN_I->token, num);//*/*/*
+			print_stack( out, (stack_t*)TOKEN_I->token, num);
 		} else if (TOKEN_I->type == TRUE_BODY_TOKEN ) {
 			fprintf(out, "T_BODY_%d :", num_cp++);
 			print_stack( out, (stack_t*)TOKEN_I->token, num);
@@ -40,58 +41,14 @@ void print_stack(FILE* out, stack_t* stack, int n) {
 			print_stack( out, (stack_t*)TOKEN_I->token, num);
 		}
 }
-
-
-int get_condition(int last_code, int this_code) {
-
-	if( last_code == EMPTY ) {
-		if(this_code == CLOSED_BRACKET)
-			return 5;
-		else return 1;
-	}else if (last_code == OPEN_BRACKET){
-		if( this_code == EMPTY )
-			return 5;
-		else if( this_code == CLOSED_BRACKET)
-			return 3;
-		else return 1;
-	}
-
-	if( this_code == OPEN_BRACKET)
-		return 1;
-	else if ( this_code == CLOSED_BRACKET)
-		return 2;
-
-
-	if ( last_code > this_code )
-		return 2;
-	else return 1	;
+void print_function(FILE* out, function_t* func){
+	fprintf(out, "FUNCTION: \n");
+	fprintf(out, "\thead: \n");
+	print_stack(out, &(func->head), 0 );
+	fprintf(out, "\tbody: \n");
+	print_stack(out, &(func->body), 0 );
+	fprintf(out, "END\n");
 }
-
-void analyze(stack_t*, stack_t*, LEX_TOKEN*);
-
-int func1(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
-	st_push(Moscow, token);
-	return 0;
-}
-int func2(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
-	st_push(Kiev, st_pop(Moscow));
-	analyze(Moscow, Kiev, token);
-
-	return 0;
-}
-int func3(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
-	st_pop(Moscow);
-	return 0;
-}
-int func4(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
-	return 1;
-}
-int func5(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
-	return -1;//ERROR
-}
-
-int (*functions[5])(stack_t*, stack_t*, LEX_TOKEN*) = 
-								{ func1, func2, func3, func4, func5 };
 
 int get_op_index(LEX_TOKEN* top) {
 	int index = EMPTY;
@@ -107,51 +64,31 @@ int get_op_index(LEX_TOKEN* top) {
 	return index;
 }
 
-void analyze(stack_t* op_stack, stack_t* val_stack, LEX_TOKEN* token){
-	int last_code = get_op_index( st_peek(op_stack) );
-	int this_code = get_op_index( token );
 
-	int variant = get_condition(last_code, this_code);
-	functions[variant-1](op_stack, val_stack, token);
+void new_function(stack_t* head, stack_t* body){
+//TODO Обработка хедера функции
+/*
+
+*/
+	function_t* func = malloc(sizeof(function_t));
+	func->head = *head;
+	func->body = *body;
+	hash_set(
+		functions,
+		((LEX_TOKEN*)(head->val[0]))->token,
+		func
+	);	
 }
 
-int not_end_logic_expr(LEX_TOKEN* token){
-	return !(token->type == OPERATION_TOKEN && token->token[0] == ':');
-}
-
-static int cnt_for_not_end_line;
-int not_end_line(LEX_TOKEN* token){
-	return cnt_for_not_end_line--;
-}
-
-//https://master.virmandy.net/perevod-iz-infiksnoy-notatsii-v-postfiksnuyu-obratnaya-polskaya-zapis/
-stack_t* generate_stack(stack_t* val_stack, LEX_TOKEN* tokens, int (*not_end)(LEX_TOKEN*)){
-	//TODO сделать op_stack постоянным
-	stack_t* op_stack = stack_new();
-	int k = 0;
-
-	while( not_end( &tokens[k] ) ){
-		if (tokens[k].type != OPERATION_TOKEN)
-			st_push(val_stack, &tokens[k]);
-		else
-			analyze(op_stack, val_stack, &tokens[k]);
-		k++;
-	}
-
-	while( st_peek(op_stack) ) {
-		int ind = get_op_index(st_peek(op_stack));
-		if( ind >= EQUAL && ind <= DOT)
-			st_push(val_stack, st_pop(op_stack));
-		else
-			break;
-	}
-	delete_stack( op_stack );
-	return val_stack;
+void init_global_var(){
+	functions = hash_new();
 }
 
 
 
 stack_t* build_AST(ALL_LEX_TOKENS* all_token){
+	init_global_var();
+
 	LEX_TOKEN* tokens = all_token->tokens;
 
 	stack_t* big_stack = stack_new();
@@ -164,16 +101,8 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 	for(int str_num = 0; str_num < all_token->count_token_lines; ++str_num) {
 		cnt_line = all_token->count_tokens[str_num];
 
-		/*
-			deep string - строка, которая увеличивает отступ, глубину
-			например
-			  --if a < b :
-			  --	print a
-			deep dtring  должна оканчиваться двоеточием
-			deep word - одно из ключевых слов с которого
-			должна начинаться deep string (while, if, else...)
-		*/
 
+		//уменьшение отступа
 		while(deep_stack->size > all_token->deeper[ str_num ] ){
 			//снимем верхний стек
 			stack_t* top = st_pop( big_stack );
@@ -190,7 +119,7 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 			
 			if( !strcmp(tok->token, "if") )
 				can_else = 1;
-			//TODO сделать эти операции до добавления, а то гоняешь туда-обратно
+			//TODO!!! сделать эти операции до добавления, а то гоняешь туда-обратно
 			if( !strcmp(tok->token, "else") ) {
 				LEX_TOKEN* false_body = st_pop( st_peek(big_stack) );
 				false_body->type = FALSE_BODY_TOKEN;
@@ -198,9 +127,15 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 				LEX_TOKEN* if_token = st_pop( st_peek(big_stack) );
 				
 				st_push( st_peek(big_stack), false_body );
-				st_push( st_peek(big_stack), if_token );				
+				st_push( st_peek(big_stack), if_token );
+			//TODO убрать символьную константу 'sub'				
+			} else if( !strcmp(tok->token, "sub") ) {
+				new_function(
+							(stack_t*)( (LEX_TOKEN*)st_pop( st_peek(big_stack) ) )->token,
+							(stack_t*)( (LEX_TOKEN*)st_pop( st_peek(big_stack) ) )->token
+				);
 			} else
-				st_push( st_peek( big_stack ), tok);
+				st_push(st_peek( big_stack ), tok);
 		}
 		int deep_word_num;
 		if ( deep_word_num = deep_word(tokens->token) ) {
@@ -209,7 +144,7 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 				printf("ERROR: Deep string must end with ':'\nnot empty str %d\n", str_num);
 				return NULL;
 			} else { //deep string по обоим параметрам (deep word and :)
-				if(deep_word_num == 3 )
+				if(deep_word_num == ELSE_ID ) {
 					if( !can_else ) {
 						printf("ERROR: expectedd 'if' before 'else' construction\nnot empty str %d\n", str_num);
 						return NULL;
@@ -217,12 +152,20 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 						printf("ERROR: wrong 'else' construction\nnot empty str %d\n", str_num);
 						return NULL;
 					}
+				 } else if(deep_word_num == FUNCTION_ID ){
+					if( deep_stack->size != 0) { // NULL, а не sub NULL, т.к. push(sub) позже 
+						printf("WARNING: I can`t work with deep_function\nnot empty str %d\n", str_num);
+						return NULL;
+					}
+				}
 				
 				st_push( deep_stack, tokens);
 				//TODO возможно нужно избавиться от передачи указателя на функцию
-				cnt_for_not_end_line = cnt_line-2;
 				stack_t* expr_stack = stack_new();
-				generate_stack(expr_stack, tokens+1, not_end_line );
+				generate_stack(
+					expr_stack, tokens+1, cnt_line-2,
+					deep_word_num != FUNCTION_ID //с хедером функции отдельный разговор
+				);
 
 				LEX_TOKEN* expr_token = malloc(sizeof(LEX_TOKEN));
 				expr_token->type = EXPR_STACK_TOKEN;
@@ -235,13 +178,15 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 
 			}
 		} else {
-			cnt_for_not_end_line = cnt_line;
-			generate_stack( st_peek(big_stack), tokens, not_end_line );
+			generate_stack( st_peek(big_stack), tokens, cnt_line, 1);
 		}
 		can_else = 0;
 		tokens += all_token->count_tokens[str_num];
 	}
-	return st_peek(big_stack);
+	
+	
+	print_function(stdout, hash_get(functions, "factorial") );
+	return st_peek(big_stack);	
 }
 
 

@@ -1,7 +1,7 @@
 #include "syntax.h"
 
-//TODO когда сделаешь хеш, измени механизмы поиска с массивов на статические хэши если это даст прирост скорости
-static char* deep_words[] = {"while", "if", "else", "elseif", "sub"};
+//TODO extern
+char* deep_words[CNT_DEEP_WORD] = {"if", "else", "while", "sub"};
 
 static char* operators_3[] = {"**=", "//=", "<<=", ">>="};
 static int 	property_3[] = {EQUAL, EQUAL, EQUAL, EQUAL};

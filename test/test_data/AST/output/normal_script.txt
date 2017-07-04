@@ -1,5 +1,6 @@
-i 2 5 ** = EXPR_0 T_BODY_1 while print ok NULL
+i 2 5 ** = EXPR_0 T_BODY_1 while exit NULL
 EXPR_0 :i 0 > NULL
-T_BODY_1 :EXPR_2 T_BODY_3 if NULL
+T_BODY_1 :EXPR_2 T_BODY_3 F_BODY_4 if NULL
 EXPR_2 :i 2 % NULL
 T_BODY_3 :print i 2 ** NULL
+F_BODY_4 :c 7 = NULL
