@@ -6,3 +6,4 @@ while i < 10:
 		c = i*i - 4*i + 1
 		pritn(c)
 return(0)
+

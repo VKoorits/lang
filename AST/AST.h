@@ -28,7 +28,11 @@
 stack_t* build_AST(ALL_LEX_TOKENS*);
 void print_stack(FILE*, stack_t*, int);
 
-stack_t* generate_stack(stack_t*, LEX_TOKEN*, int, int);
+stack_t* generate_stack(stack_t*, LEX_TOKEN*, int(*)(LEX_TOKEN*), int, int*);
 int get_op_index(LEX_TOKEN*);
+
+//END functions
+int end_by_count(LEX_TOKEN*);
+int end_by_bracket(LEX_TOKEN*);
 
 #endif

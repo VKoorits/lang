@@ -26,7 +26,9 @@
 #define EXPR_STACK_TOKEN (64)
 #define TRUE_BODY_TOKEN (128)
 #define FALSE_BODY_TOKEN (256)
-#define UNKNOWN_TOKEN (512)
+#define ARGS_TOKEN (512)
+#define FUNC_CALL_TOKEN (1024)
+#define UNKNOWN_TOKEN (2048)
 
 
 #define NOT_IN_QUOTE (0)

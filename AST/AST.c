@@ -2,12 +2,27 @@
 
 /*
 TODO придумать какой спецсимвол, например слеш, решётка или собака
-TODO сделать обработку скобок, их можно вставлять куда и сколько угодно 
-TODO избавиться от образования пустого стэка при обработке 'else'
+TODO сделать обработку скобок, их можно вставлять куда и сколько угодно  
 */
-
-//##################### GLOBAL_VARIABLES
 hash_t* functions = NULL;
+////////////////////
+int end_by_count_cnt;
+int end_by_bracket_deep;
+//##################### GLOBAL_VARIABLES
+
+int end_by_count(LEX_TOKEN* tok) { return end_by_count_cnt--; }
+int end_by_bracket(LEX_TOKEN* tok){
+	if( !strcmp( tok->token, ")" ) )
+		--end_by_bracket_deep;
+	else if ( !strcmp( tok->token, "(") )
+		++end_by_bracket_deep;
+
+	--end_by_count_cnt;
+	if( !end_by_count) return 0;
+	if( end_by_bracket_deep > 0 ) return 1;
+	return 0;
+		
+}
 //#####################
 
 void print_stack(FILE* out, stack_t* stack, int n) {
@@ -24,6 +39,10 @@ void print_stack(FILE* out, stack_t* stack, int n) {
 			fprintf(out, "T_BODY_%d ", num++);
 		else if( TOKEN_I->type == FALSE_BODY_TOKEN )
 			fprintf(out, "F_BODY_%d ", num++);
+		else if( TOKEN_I->type == ARGS_TOKEN )
+			fprintf(out, "ARGS_%d ", num++);
+		else if( TOKEN_I->type == FUNC_CALL_TOKEN )
+			fprintf(out, "CALL_%d ", num++);
 		else
 			fprintf(out, "%s ", TOKEN_I->token);
 	}
@@ -39,6 +58,12 @@ void print_stack(FILE* out, stack_t* stack, int n) {
 		} else if (TOKEN_I->type == FALSE_BODY_TOKEN ) {
 			fprintf(out, "F_BODY_%d :", num_cp++);
 			print_stack( out, (stack_t*)TOKEN_I->token, num);
+		} else if (TOKEN_I->type == ARGS_TOKEN ) {
+			fprintf(out, "ARGS_%d :", num_cp++);
+			print_stack( out, (stack_t*)TOKEN_I->token, num);
+		} else if (TOKEN_I->type == FUNC_CALL_TOKEN ) {
+			fprintf(out, "CALL_%d :", num_cp++);
+			print_stack( out, (stack_t*)TOKEN_I->token, num);
 		}
 }
 void print_function(FILE* out, function_t* func){
@@ -49,27 +74,19 @@ void print_function(FILE* out, function_t* func){
 	print_stack(out, &(func->body), 0 );
 	fprintf(out, "END\n");
 }
+ 
 
-int get_op_index(LEX_TOKEN* top) {
-	int index = EMPTY;
-	if(top) {
-		index = top->info;
-		if(index == -1){
-			if(top->token[0] == '(')
-				index = OPEN_BRACKET;
-			else if ( top->token[0] == ')')
-				index = CLOSED_BRACKET;
-		}
+char* new_function(stack_t* head, stack_t* body){
+//TODO обработка аргументов функции по хэдеру
+//TODO улучшить тексты ошибок
+	if( ((LEX_TOKEN*)(head->val[0]))->type != IDENT_TOKEN ) {
+		return "ERROR: function header must start with IDENT_TOKEN\n";
+	} else if(
+		  strcmp( ((LEX_TOKEN*)(head->val[1]))->token, "(") ||
+		  strcmp( ((LEX_TOKEN*)(st_peek(head)))->token, ")")  ) {
+		return "ERROR: second and last token must be brackets\n";
 	}
-	return index;
-}
 
-
-void new_function(stack_t* head, stack_t* body){
-//TODO Обработка хедера функции
-/*
-
-*/
 	function_t* func = malloc(sizeof(function_t));
 	func->head = *head;
 	func->body = *body;
@@ -77,7 +94,8 @@ void new_function(stack_t* head, stack_t* body){
 		functions,
 		((LEX_TOKEN*)(head->val[0]))->token,
 		func
-	);	
+	);
+	return NULL;
 }
 
 void init_global_var(){
@@ -130,10 +148,14 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 				st_push( st_peek(big_stack), if_token );
 			//TODO убрать символьную константу 'sub'				
 			} else if( !strcmp(tok->token, "sub") ) {
-				new_function(
+				char* new_function_error = new_function(
 							(stack_t*)( (LEX_TOKEN*)st_pop( st_peek(big_stack) ) )->token,
 							(stack_t*)( (LEX_TOKEN*)st_pop( st_peek(big_stack) ) )->token
-				);
+				);				
+				if(new_function_error){
+					printf("%s", new_function_error);
+					return NULL;
+				}
 			} else
 				st_push(st_peek( big_stack ), tok);
 		}
@@ -162,9 +184,12 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 				st_push( deep_stack, tokens);
 				//TODO возможно нужно избавиться от передачи указателя на функцию
 				stack_t* expr_stack = stack_new();
+				
+				end_by_count_cnt = cnt_line-2;
+				int delta = 0;
 				generate_stack(
-					expr_stack, tokens+1, cnt_line-2,
-					deep_word_num != FUNCTION_ID //с хедером функции отдельный разговор
+					expr_stack, tokens+1, end_by_count,
+					deep_word_num != FUNCTION_ID, &delta //с хедером функции отдельный разговор
 				);
 
 				LEX_TOKEN* expr_token = malloc(sizeof(LEX_TOKEN));
@@ -178,14 +203,16 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 
 			}
 		} else {
-			generate_stack( st_peek(big_stack), tokens, cnt_line, 1);
+			end_by_count_cnt = cnt_line;
+			int delta = 0;
+			generate_stack( st_peek(big_stack), tokens, end_by_count, 1, &delta);
 		}
 		can_else = 0;
 		tokens += all_token->count_tokens[str_num];
 	}
 	
 	
-	print_function(stdout, hash_get(functions, "factorial") );
+	//print_function(stdout, hash_get(functions, "factorial") );
 	return st_peek(big_stack);	
 }
 
