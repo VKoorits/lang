@@ -4,6 +4,6 @@ while i < 10:
 		print(i*i)
 	else:
 		c = i*i - 4*i + 1
-		pritn(c)
+		print(c)
 return(0)
 

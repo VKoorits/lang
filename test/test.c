@@ -149,7 +149,8 @@ int test() {
 	//AST
 	char* AST_filenames[] = {
 		"normal_script",
-		"with_func1_call"
+		"with_func1_call",
+		"with_func_many_call"
 	};
 	
 	printf("AST_TEST:\n");

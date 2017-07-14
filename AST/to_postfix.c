@@ -80,37 +80,69 @@ void analyze(stack_t* op_stack, stack_t* val_stack, LEX_TOKEN* token){
 }
 
 
+LEX_TOKEN* create_token_stack(int token_type) {
+	LEX_TOKEN* tok = malloc( sizeof(LEX_TOKEN) );
+	tok->token = (char*)stack_new();
+	tok->type = token_type;
+	return tok;
+}
 
+//TODO! обработка ошибок, т.к там они могут возникать
+void end_Polish_expr(stack_t* val_stack, stack_t* op_stack){
+	while( st_peek(op_stack) ) {
+			int ind = get_op_index(st_peek(op_stack));
+			if( ind >= EQUAL && ind <= DOT)
+				st_push(val_stack, st_pop(op_stack));
+			else
+				break;
+		}
+}
 
 // https://master.virmandy.net/perevod-iz-infiksnoy-notatsii-v-postfiksnuyu-obratnaya-polskaya-zapis/
-stack_t* generate_stack(stack_t* val_stack, LEX_TOKEN* tokens,
-						int(*NOT_END)(LEX_TOKEN*), int Polish, int* delta){
+stack_t* generate_stack_recursive(stack_t* val_stack, LEX_TOKEN* tokens,
+						int(*NOT_END)(LEX_TOKEN*), int Polish, int* delta, int read_list){
 	//OPTIMIZATE сделать op_stack постоянным
 	stack_t* op_stack = stack_new();
+	
+	stack_t* for_push_val_stack = val_stack;
+	if ( read_list )
+		for_push_val_stack = (stack_t*)( ((LEX_TOKEN*)st_peek(val_stack))->token );
+		
+		
 	int k = 0;
 		if(Polish) {
 		int last_type = UNKNOWN_TOKEN;
-
 		while( NOT_END( tokens + k ) ){
 			
-			//BAG TODO tokens[k].token[0] == '(' подойдет и для строки начинающейся со скобки!!!!!!!!
-			if( tokens[k].token[0] == '('){
-				if( last_type == IDENT_TOKEN) { //вызов функции: 'print (...'
-					end_by_bracket_deep = 0;
-					
-					LEX_TOKEN* name_func = st_pop(val_stack);					
-					
+			if( !strcmp( tokens[k].token, "(") ){
+				
+				
+				if( last_type == IDENT_TOKEN) { //вызов функции: 'print (...'					
 					LEX_TOKEN* func_args = malloc( sizeof(LEX_TOKEN) );
-					int delta_func = 0;
-					func_args->token = (char*)generate_stack(
-						stack_new(), tokens+k, end_by_bracket, 1, &delta_func);
+					LEX_TOKEN* name_func = st_pop(val_stack);	
+					// если вызов функции как аргумент функции,
+					//то имя не рассмотртся как IDENT_TOKEN, а должно
+					if(read_list) { 
+						LEX_TOKEN* name = st_peek( (stack_t*)name_func->token );
+						delete_stack( (stack_t*)name_func->token );
+						name_func = name;
+					}
+	
 					
-					func_args->type = ARGS_TOKEN;
+					stack_t* args_stack = stack_new();
+					st_push( args_stack, create_token_stack( LIST_EL_TOKEN ) );				
+					
+					// первая единица => польская нотация
+					//вторая указывает на чтение списка
+					int delta_func = 0;
+					end_by_bracket_deep = 0;
+					func_args->token = (char*)generate_stack_recursive(
+						args_stack, tokens+k, end_by_bracket, 1, &delta_func, 1);
+
+					func_args->type = LIST_TOKEN;
 					
 					//TODO ручное создание стека, так точно известно, что элементов 2
-					LEX_TOKEN* func_call = malloc( sizeof(LEX_TOKEN) );
-					func_call->token = (char*)stack_new();
-					func_call->type = FUNC_CALL_TOKEN;
+					LEX_TOKEN* func_call = create_token_stack( FUNC_CALL_TOKEN );
 				
 					
 					st_push( (stack_t*)(func_call->token), func_args);
@@ -122,29 +154,45 @@ stack_t* generate_stack(stack_t* val_stack, LEX_TOKEN* tokens,
 					
 					
 				}
+			} else if( !strcmp( tokens[k].token, ",") ){	
+				if( read_list ){
+					end_Polish_expr(for_push_val_stack, op_stack);
+					
+					st_push( val_stack, create_token_stack( LIST_EL_TOKEN ) );
+					for_push_val_stack = (stack_t*)( ((LEX_TOKEN*)st_peek(val_stack))->token );
+				} else {
+					printf("ERROR: zpt no in list\n\n");
+					mark();
+					return NULL;
+				}
+				
+				
 			}
+
+
 			
 			if (tokens[k].type != OPERATION_TOKEN)
-				st_push(val_stack, &tokens[k]);
+				st_push(for_push_val_stack, &tokens[k]);
 			else
-				analyze(op_stack, val_stack, &tokens[k]);
+				analyze(op_stack, for_push_val_stack, &tokens[k]);
 			last_type = tokens[k].type;
 			k++;
 		}
 		++end_by_count_cnt;
-		
+		/*
 		while( st_peek(op_stack) ) {
 			int ind = get_op_index(st_peek(op_stack));
 			if( ind >= EQUAL && ind <= DOT)
-				st_push(val_stack, st_pop(op_stack));
+				st_push(for_push_val_stack, st_pop(op_stack));
 			else
 				break;
 		}
-
+		*/
+		end_Polish_expr(for_push_val_stack, op_stack);
 		delete_stack( op_stack );
 	} else {
 		while( NOT_END( tokens + k ) )
-			st_push(val_stack, &tokens[k++]);	
+			st_push(for_push_val_stack, &tokens[k++]);			
 	}
 	
 	
@@ -153,3 +201,11 @@ stack_t* generate_stack(stack_t* val_stack, LEX_TOKEN* tokens,
 	return val_stack;
 }
 
+
+stack_t* generate_stack(stack_t* val_stack, LEX_TOKEN* tokens,
+						int(*NOT_END)(LEX_TOKEN*), int Polish){
+	
+	int delta = 0;
+	// 0 => чтение начинается с неспискового
+	return generate_stack_recursive(val_stack, tokens, NOT_END, Polish, &delta, 0);	
+}

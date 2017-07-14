@@ -39,10 +39,12 @@ void print_stack(FILE* out, stack_t* stack, int n) {
 			fprintf(out, "T_BODY_%d ", num++);
 		else if( TOKEN_I->type == FALSE_BODY_TOKEN )
 			fprintf(out, "F_BODY_%d ", num++);
-		else if( TOKEN_I->type == ARGS_TOKEN )
-			fprintf(out, "ARGS_%d ", num++);
+		else if( TOKEN_I->type == LIST_TOKEN )
+			fprintf(out, "LIST_%d ", num++);
 		else if( TOKEN_I->type == FUNC_CALL_TOKEN )
 			fprintf(out, "CALL_%d ", num++);
+		else if( TOKEN_I->type == LIST_EL_TOKEN )
+			fprintf(out, "ELEM_%d ", num++);
 		else
 			fprintf(out, "%s ", TOKEN_I->token);
 	}
@@ -58,13 +60,17 @@ void print_stack(FILE* out, stack_t* stack, int n) {
 		} else if (TOKEN_I->type == FALSE_BODY_TOKEN ) {
 			fprintf(out, "F_BODY_%d :", num_cp++);
 			print_stack( out, (stack_t*)TOKEN_I->token, num);
-		} else if (TOKEN_I->type == ARGS_TOKEN ) {
-			fprintf(out, "ARGS_%d :", num_cp++);
+		} else if (TOKEN_I->type == LIST_TOKEN ) {
+			fprintf(out, "LIST_%d :", num_cp++);
 			print_stack( out, (stack_t*)TOKEN_I->token, num);
 		} else if (TOKEN_I->type == FUNC_CALL_TOKEN ) {
 			fprintf(out, "CALL_%d :", num_cp++);
 			print_stack( out, (stack_t*)TOKEN_I->token, num);
+		} else if (TOKEN_I->type == LIST_EL_TOKEN ) {
+			fprintf(out, "ELEM_%d :", num_cp++);
+			print_stack( out, (stack_t*)TOKEN_I->token, num);
 		}
+	#undef TOKEN_I
 }
 void print_function(FILE* out, function_t* func){
 	fprintf(out, "FUNCTION: \n");
@@ -182,14 +188,12 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 				}
 				
 				st_push( deep_stack, tokens);
-				//TODO возможно нужно избавиться от передачи указателя на функцию
 				stack_t* expr_stack = stack_new();
 				
 				end_by_count_cnt = cnt_line-2;
-				int delta = 0;
 				generate_stack(
 					expr_stack, tokens+1, end_by_count,
-					deep_word_num != FUNCTION_ID, &delta //с хедером функции отдельный разговор
+					deep_word_num != FUNCTION_ID//с хедером функции отдельный разговор
 				);
 
 				LEX_TOKEN* expr_token = malloc(sizeof(LEX_TOKEN));
@@ -204,8 +208,7 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 			}
 		} else {
 			end_by_count_cnt = cnt_line;
-			int delta = 0;
-			generate_stack( st_peek(big_stack), tokens, end_by_count, 1, &delta);
+			generate_stack( st_peek(big_stack), tokens, end_by_count, 1);
 		}
 		can_else = 0;
 		tokens += all_token->count_tokens[str_num];
