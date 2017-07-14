@@ -1,0 +1,1 @@
+ERROR: second and last token must be brackets

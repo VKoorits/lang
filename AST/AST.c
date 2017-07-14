@@ -110,7 +110,7 @@ void init_global_var(){
 
 
 
-stack_t* build_AST(ALL_LEX_TOKENS* all_token){
+stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out){
 	init_global_var();
 
 	LEX_TOKEN* tokens = all_token->tokens;
@@ -159,7 +159,7 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 							(stack_t*)( (LEX_TOKEN*)st_pop( st_peek(big_stack) ) )->token
 				);				
 				if(new_function_error){
-					printf("%s", new_function_error);
+					fprintf(out, "%s", new_function_error);
 					return NULL;
 				}
 			} else
@@ -169,20 +169,20 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token){
 		if ( deep_word_num = deep_word(tokens->token) ) {
 			if( tokens[cnt_line-1].type != OPERATION_TOKEN || tokens[cnt_line-1].token[0] != ':'){
 				//TODO printf -> fprintf
-				printf("ERROR: Deep string must end with ':'\nnot empty str %d\n", str_num);
+				fprintf(out, "ERROR: Deep string must end with ':'\n");
 				return NULL;
 			} else { //deep string по обоим параметрам (deep word and :)
 				if(deep_word_num == ELSE_ID ) {
 					if( !can_else ) {
-						printf("ERROR: expectedd 'if' before 'else' construction\nnot empty str %d\n", str_num);
+						fprintf(out, "ERROR: expectedd 'if' before 'else' construction\n");
 						return NULL;
 					} else if ( cnt_line != 2 ){ // если строка содержит else, то : и ничего более 
-						printf("ERROR: wrong 'else' construction\nnot empty str %d\n", str_num);
+						fprintf(out, "ERROR: wrong 'else' construction\n");
 						return NULL;
 					}
 				 } else if(deep_word_num == FUNCTION_ID ){
 					if( deep_stack->size != 0) { // NULL, а не sub NULL, т.к. push(sub) позже 
-						printf("WARNING: I can`t work with deep_function\nnot empty str %d\n", str_num);
+						fprintf(out, "WARNING: I can`t work with deep_function\n");
 						return NULL;
 					}
 				}

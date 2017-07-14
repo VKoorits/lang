@@ -1,0 +1,1 @@
+ERROR: function header must start with IDENT_TOKEN

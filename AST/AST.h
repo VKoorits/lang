@@ -25,7 +25,7 @@
 #define CLOSED_BRACKET (102)
 
 
-stack_t* build_AST(ALL_LEX_TOKENS*);
+stack_t* build_AST(ALL_LEX_TOKENS*, FILE*);
 void print_stack(FILE*, stack_t*, int);
 
 stack_t* generate_stack(stack_t*, LEX_TOKEN*, int(*)(LEX_TOKEN*), int);
