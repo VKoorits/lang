@@ -1,6 +1,5 @@
 #include "syntax.h"
 
-//TODO extern
 char* deep_words[CNT_DEEP_WORD] = {"if", "else", "while", "sub"};
 
 static char* operators_3[] = {"**=", "//=", "<<=", ">>="};
@@ -14,6 +13,8 @@ static int		property_char[]= { NOT, LOG_AND, LOG_OR, CMP, IN,   LOG_AND};
 
 static const char operations[] = {'+', '-', '*', '/', '%', '.', ',',  '=',  '!', '^',   '>', '<', '&',    '|', '(', '[', '{', '}', ']', ')', ';',':' };
 static int 	property_1[] = 		{ADD, ADD, MUL, MUL, MUL, DOT, -1,  EQUAL, NOT,BIT_XOR,CMP, CMP,BIT_AND,BIT_OR, -1, -1,  -1,  -1,   -1,   -1, -1, -1 };
+
+char brackets_char[6] = {'(', '[', '{', ')', ']', '}' };
 
 //##########################################
 //##########################################

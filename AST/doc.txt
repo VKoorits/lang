@@ -9,3 +9,29 @@ deep word - одно из ключевых слов с которого
 
 предполагается, что каждая строка - законченное выражение
 если строка длинная, то при переносе ставить спец символ
+
+			else if(!strcmp( tokens[k].token, "[") ) {
+				LEX_TOKEN* array = create_token_stack( LIST_EL_TOKEN );
+				int delta_func = 0;
+
+				array->token = (char*)generate_stack_recursive(
+					out, (stack_t*)(array->token), tokens+k, end_by_square_bracket, 1, &delta_func, 1);
+				if( array->token == NULL )
+					return NULL;
+					
+				st_push(for_push_val_stack, array);
+				
+				k+=delta_func+1; continue;
+			}else if(!strcmp( tokens[k].token, "{") ) {
+				LEX_TOKEN* array = create_token_stack( LIST_EL_TOKEN );
+				int delta_func = 0;
+
+				array->token = (char*)generate_stack_recursive(
+					out, (stack_t*)(array->token), tokens+k, end_by_figure_bracket, 1, &delta_func, 1);
+				if( array->token == NULL )
+					return NULL;
+					
+				st_push(for_push_val_stack, array);
+				
+				k+=delta_func+1; continue;
+			} 

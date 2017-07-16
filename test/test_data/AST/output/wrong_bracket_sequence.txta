@@ -1,0 +1,3 @@
+ERROR: wrong brackets sequence:
+	expected: ']'
+	got:      ')'

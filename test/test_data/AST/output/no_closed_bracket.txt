@@ -1,0 +1,1 @@
+ERROR: lex_analyze can`t open file test/test_data/AST/input/no_closed_bracket.l9

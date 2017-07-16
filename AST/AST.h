@@ -21,18 +21,28 @@
 #define IN_FALSE	(4)
 
 #define EMPTY (100)
-#define OPEN_BRACKET (101)
-#define CLOSED_BRACKET (102)
+//BASE_BRACKET > 6 !
+// см функцию is_bracket (to_postfix.c)
+#define NUM_MORE_CNT_BRACKET (10)
+#define BASE_BRACKET (100) 
+#define OPEN_ROUND_BRACKET (101)
+#define OPEN_SQUARE_BRACKET (102)
+#define OPEN_FIGURE_BRACKET (103)
+#define CLOSED_ROUND_BRACKET (104)
+#define CLOSED_SQUARE_BRACKET (105)
+#define CLOSED_FIGURE_BRACKET (106)
 
 
 stack_t* build_AST(ALL_LEX_TOKENS*, FILE*);
 void print_stack(FILE*, stack_t*, int);
 
-stack_t* generate_stack(stack_t*, LEX_TOKEN*, int(*)(LEX_TOKEN*), int);
+stack_t* generate_stack(FILE* out, stack_t*, LEX_TOKEN*, int(*)(LEX_TOKEN*), int);
 int get_op_index(LEX_TOKEN*);
 
 //END functions
 int end_by_count(LEX_TOKEN*);
-int end_by_bracket(LEX_TOKEN*);
+int end_by_round_bracket(LEX_TOKEN*);
+int end_by_square_bracket(LEX_TOKEN*);
+int end_by_figure_bracket(LEX_TOKEN*);
 
 #endif

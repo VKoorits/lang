@@ -155,7 +155,11 @@ int test() {
 		"wrong_brackets_header",
 		"wrong_deep_end",
 		"else_without_if",
-		"wrong_else"
+		"wrong_else",
+		"no_open_bracket",
+		"unclosed_bracket_expr",
+		"wrong_bracket_seq",
+		"unclosed_bracket_func"
 	};
 	
 	printf("AST_TEST:\n");

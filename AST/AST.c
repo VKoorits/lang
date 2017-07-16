@@ -11,7 +11,7 @@ int end_by_bracket_deep;
 //##################### GLOBAL_VARIABLES
 
 int end_by_count(LEX_TOKEN* tok) { return end_by_count_cnt--; }
-int end_by_bracket(LEX_TOKEN* tok){
+int end_by_round_bracket(LEX_TOKEN* tok){
 	if( !strcmp( tok->token, ")" ) )
 		--end_by_bracket_deep;
 	else if ( !strcmp( tok->token, "(") )
@@ -20,8 +20,29 @@ int end_by_bracket(LEX_TOKEN* tok){
 	--end_by_count_cnt;
 	if( !end_by_count) return 0;
 	if( end_by_bracket_deep > 0 ) return 1;
-	return 0;
-		
+	return 0;		
+}
+int end_by_square_bracket(LEX_TOKEN* tok){
+	if( !strcmp( tok->token, "]" ) )
+		--end_by_bracket_deep;
+	else if ( !strcmp( tok->token, "[") )
+		++end_by_bracket_deep;
+
+	--end_by_count_cnt;
+	if( !end_by_count) return 0;
+	if( end_by_bracket_deep > 0 ) return 1;
+	return 0;		
+}
+int end_by_figure_bracket(LEX_TOKEN* tok){
+	if( !strcmp( tok->token, "}" ) )
+		--end_by_bracket_deep;
+	else if ( !strcmp( tok->token, "{") )
+		++end_by_bracket_deep;
+
+	--end_by_count_cnt;
+	if( !end_by_count) return 0;
+	if( end_by_bracket_deep > 0 ) return 1;
+	return 0;		
 }
 //#####################
 
@@ -191,10 +212,12 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out){
 				stack_t* expr_stack = stack_new();
 				
 				end_by_count_cnt = cnt_line-2;
-				generate_stack(
-					expr_stack, tokens+1, end_by_count,
+				stack_t* generate_res = generate_stack(
+					out, expr_stack, tokens+1, end_by_count,
 					deep_word_num != FUNCTION_ID//с хедером функции отдельный разговор
 				);
+				if( !generate_res )
+					return NULL;
 
 				LEX_TOKEN* expr_token = malloc(sizeof(LEX_TOKEN));
 				expr_token->type = EXPR_STACK_TOKEN;
@@ -208,7 +231,9 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out){
 			}
 		} else {
 			end_by_count_cnt = cnt_line;
-			generate_stack( st_peek(big_stack), tokens, end_by_count, 1);
+			stack_t* generate_res = generate_stack(out, st_peek(big_stack), tokens, end_by_count, 1);
+			if( !generate_res )
+					return NULL;
 		}
 		can_else = 0;
 		tokens += all_token->count_tokens[str_num];
