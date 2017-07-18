@@ -159,7 +159,8 @@ int test() {
 		"no_open_bracket",
 		"unclosed_bracket_expr",
 		"wrong_bracket_seq",
-		"unclosed_bracket_func"
+		"unclosed_bracket_func",
+		"func_like_arg"
 	};
 	
 	printf("AST_TEST:\n");

@@ -8,19 +8,39 @@ hash_t* functions = NULL;
 ////////////////////
 int end_by_count_cnt;
 int end_by_bracket_deep;
+int next_last;
 //##################### GLOBAL_VARIABLES
 
 int end_by_count(LEX_TOKEN* tok) { return end_by_count_cnt--; }
 int end_by_round_bracket(LEX_TOKEN* tok){
+	IFD printf("IN FUNCTION: count_cnt => %d deep => %d\n", end_by_count_cnt, end_by_bracket_deep);
+	if(next_last){
+		IFD printf("return 0, by next_last\n");
+		next_last = 0;
+		//++end_by_count_cnt;
+		return 0;
+	}
+	--end_by_count_cnt;
+	if( end_by_count_cnt < 0){ IFD printf("return 0 by cnt\t"); return 0; }
+	
 	if( !strcmp( tok->token, ")" ) )
 		--end_by_bracket_deep;
-	else if ( !strcmp( tok->token, "(") )
+	else if ( !strcmp( tok->token, "(") ){
 		++end_by_bracket_deep;
-
-	--end_by_count_cnt;
-	if( !end_by_count) return 0;
-	if( end_by_bracket_deep > 0 ) return 1;
-	return 0;		
+		next_last = 0;
+	}
+		
+	if( end_by_bracket_deep > 0 ){ 
+		IFD printf("return 1, by deep\t");
+		return 1;
+		next_last = 0;
+	} else if (end_by_bracket_deep == 0 ){
+		next_last = 1;
+		IFD printf("return 1, by next_last\t");
+		return 1;
+	}
+	
+	IFD printf("return 1, by just\t"); return 1;	
 }
 int end_by_square_bracket(LEX_TOKEN* tok){
 	if( !strcmp( tok->token, "]" ) )
@@ -130,6 +150,46 @@ void init_global_var(){
 }
 
 
+int decrement_deep(FILE* out, stack_t* big_stack, stack_t* deep_stack, int* can_else){
+	//снимем верхний стек
+	stack_t* top = st_pop( big_stack );
+	//кладем его в стек на уровень ниже
+	LEX_TOKEN* top_stack_token = malloc(sizeof(stack_t));
+	top_stack_token->type = TRUE_BODY_TOKEN;
+	top_stack_token->info = 0;
+	top_stack_token->token = (char*)top;
+
+	st_push( st_peek(big_stack), top_stack_token);
+
+	//сразу за ним оператор блока (if, while...)
+	LEX_TOKEN* tok = st_pop(deep_stack);
+	
+	if( !strcmp(tok->token, "if") )
+		*can_else = 1;
+	//TODO!!! сделать эти операции до добавления, а то гоняешь туда-обратно
+	if( !strcmp(tok->token, "else") ) {
+		LEX_TOKEN* false_body = st_pop( st_peek(big_stack) );
+		false_body->type = FALSE_BODY_TOKEN;
+		st_pop( st_peek(big_stack) );//else expr
+		LEX_TOKEN* if_token = st_pop( st_peek(big_stack) );
+		
+		st_push( st_peek(big_stack), false_body );
+		st_push( st_peek(big_stack), if_token );
+	//TODO убрать символьную константу 'sub'				
+	} else if( !strcmp(tok->token, "sub") ) {
+		char* new_function_error = new_function(
+					(stack_t*)( (LEX_TOKEN*)st_pop( st_peek(big_stack) ) )->token,
+					(stack_t*)( (LEX_TOKEN*)st_pop( st_peek(big_stack) ) )->token
+		);				
+		if(new_function_error){
+			fprintf(out, "%s", new_function_error);
+			return 0;
+		}
+	} else
+		st_push(st_peek( big_stack ), tok);
+	return 1;
+}
+
 
 stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out){
 	init_global_var();
@@ -147,44 +207,10 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out){
 		cnt_line = all_token->count_tokens[str_num];
 
 
-		//уменьшение отступа
+		//уменьшение отступа до нужной глубины
 		while(deep_stack->size > all_token->deeper[ str_num ] ){
-			//снимем верхний стек
-			stack_t* top = st_pop( big_stack );
-			//кладем его в стек на уровень ниже
-			LEX_TOKEN* top_stack_token = malloc(sizeof(stack_t));
-			top_stack_token->type = TRUE_BODY_TOKEN;
-			top_stack_token->info = 0;
-			top_stack_token->token = (char*)top;
-
-			st_push( st_peek(big_stack), top_stack_token);
-
-			//сразу за ним оператор блока (if, while...)
-			LEX_TOKEN* tok = st_pop(deep_stack);
-			
-			if( !strcmp(tok->token, "if") )
-				can_else = 1;
-			//TODO!!! сделать эти операции до добавления, а то гоняешь туда-обратно
-			if( !strcmp(tok->token, "else") ) {
-				LEX_TOKEN* false_body = st_pop( st_peek(big_stack) );
-				false_body->type = FALSE_BODY_TOKEN;
-				st_pop( st_peek(big_stack) );//else expr
-				LEX_TOKEN* if_token = st_pop( st_peek(big_stack) );
-				
-				st_push( st_peek(big_stack), false_body );
-				st_push( st_peek(big_stack), if_token );
-			//TODO убрать символьную константу 'sub'				
-			} else if( !strcmp(tok->token, "sub") ) {
-				char* new_function_error = new_function(
-							(stack_t*)( (LEX_TOKEN*)st_pop( st_peek(big_stack) ) )->token,
-							(stack_t*)( (LEX_TOKEN*)st_pop( st_peek(big_stack) ) )->token
-				);				
-				if(new_function_error){
-					fprintf(out, "%s", new_function_error);
-					return NULL;
-				}
-			} else
-				st_push(st_peek( big_stack ), tok);
+			int decrement_ok = decrement_deep(out, big_stack, deep_stack, &can_else);
+			if(!decrement_ok) return NULL;
 		}
 		int deep_word_num;
 		if ( deep_word_num = deep_word(tokens->token) ) {
@@ -192,7 +218,7 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out){
 				//TODO printf -> fprintf
 				fprintf(out, "ERROR: Deep string must end with ':'\n");
 				return NULL;
-			} else { //deep string по обоим параметрам (deep word and :)
+			} else { //deep string по обоим параметрам (deep word and ':')
 				if(deep_word_num == ELSE_ID ) {
 					if( !can_else ) {
 						fprintf(out, "ERROR: expectedd 'if' before 'else' construction\n");
@@ -201,7 +227,7 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out){
 						fprintf(out, "ERROR: wrong 'else' construction\n");
 						return NULL;
 					}
-				 } else if(deep_word_num == FUNCTION_ID ){
+				} else if(deep_word_num == FUNCTION_ID ){
 					if( deep_stack->size != 0) { // NULL, а не sub NULL, т.к. push(sub) позже 
 						fprintf(out, "WARNING: I can`t work with deep_function\n");
 						return NULL;
@@ -238,9 +264,13 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out){
 		can_else = 0;
 		tokens += all_token->count_tokens[str_num];
 	}
-	
-	
-	//print_function(stdout, hash_get(functions, "factorial") );
+
+
+	//уменьшение отступа до нуля
+	while(deep_stack->size > 0 ){
+			int decrement_ok = decrement_deep(out, big_stack, deep_stack, &can_else);
+			if(!decrement_ok) return NULL;
+	}
 	return st_peek(big_stack);	
 }
 

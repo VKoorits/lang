@@ -139,28 +139,33 @@ int end_Polish_expr(stack_t* val_stack, stack_t* op_stack){
 // https://master.virmandy.net/perevod-iz-infiksnoy-notatsii-v-postfiksnuyu-obratnaya-polskaya-zapis/
 stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* tokens,
 						int(*NOT_END)(LEX_TOKEN*), int Polish, int* delta, int read_list){
+	
+	
 	stack_t* op_stack = stack_new();
 	stack_t* brackets_stack = stack_new();
 	
 	stack_t* for_push_val_stack = val_stack;
 	if ( read_list )
 		for_push_val_stack = (stack_t*)( ((LEX_TOKEN*)st_peek(val_stack))->token );
-		
-		
+
+
 	int k = 0;
 		if(Polish) {
 		int last_type = UNKNOWN_TOKEN;
-		while( NOT_END( tokens + k ) ){
+		while(  NOT_END( tokens + k ) > 0 ){
+			
 
 			//BEGIN не удалять, полезно при отладке
-			/*print_stack(stdout, op_stack, 0);
-			print_stack(stdout, val_stack, 0);
-			printf("********************\n");
-			printf("token => %s, read_list => %d\n", tokens[k].token, read_list);*/
+			IFD printf("token => %s\n read_list => %d\t", tokens[k].token, read_list);
+			IFD print_stack(stdout, op_stack, 0);
+			//print_stack(stdout, val_stack, 0);
+			//printf("********************\n");*/
+			
 			
 			//END
 			//DEBUG !read_list &&
 			if( !strcmp( tokens[k].token, "(") ){
+				
 				if( last_type == IDENT_TOKEN) { //вызов функции: 'print (...'		
 					LEX_TOKEN* func_args = malloc( sizeof(LEX_TOKEN) );
 					LEX_TOKEN* name_func = st_pop(val_stack);	
@@ -179,10 +184,12 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 					// первая единица => польская нотация
 					//вторая указывает на чтение списка
 					int delta_func = 0;
+					IFD printf("\tBEFORE RECURSION end_deep => %d\n", end_by_bracket_deep);
 					end_by_bracket_deep = 0;
-
+					++end_by_count_cnt;
 					func_args->token = (char*)generate_stack_recursive(
-						out, args_stack, tokens+k, end_by_round_bracket, 1, &delta_func, 1);
+						out, args_stack, tokens+k, end_by_round_bracket, 1, &delta_func, read_list + 1);
+					end_by_bracket_deep = 1;
 					if( func_args->token == NULL )
 						return NULL;
 					
@@ -196,8 +203,7 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 					st_push( (stack_t*)(func_call->token), name_func);
 					st_push(val_stack, func_call);
 
-
-					k+=delta_func+1; continue;
+					k+=delta_func; continue;
 		
 				}
 			} else if( !strcmp( tokens[k].token, ",") ){	
@@ -206,17 +212,15 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 					//ДУБЛИРОВАНИЕ КОДА, см //DOUBLE
 					if(!Polish_res) {
 						if(!(
-							read_list==1 && op_stack->size==1 &&
+							read_list && op_stack->size==1 &&
 							( (LEX_TOKEN*)st_peek(op_stack) )->token[0] == '('
 						) ){
 							if( is_bracket( st_peek(op_stack) ) )
 								fprintf(out, "ERROR: no closed bracket for '%s'\n", ( (LEX_TOKEN*)(st_peek(op_stack)) )->token );
-							else {
-								fprintf(out, "ERROR: wrong expression. not null stack:\n");
-								print_stack(stdout, op_stack, 0);
-							}
+							else
+								fprintf(out, "ERROR: wrong expression. not null stack;):\n");
 
-							//return NULL;
+							return NULL;
 						}
 					}
 					
@@ -227,10 +231,9 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 					return NULL;
 				}
 				k++; continue;
-				
 			}
 			
-
+			
 			
 			if (tokens[k].type != OPERATION_TOKEN)
 				st_push(for_push_val_stack, &tokens[k]);
@@ -245,25 +248,25 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 			k++;
 		}// while
 
-		++end_by_count_cnt;
 		
 		
 		
+		IFD printf("RECURSION --\t op_stack => ");
+		IFD print_stack(stdout, op_stack, 0);
 		int Polish_res = end_Polish_expr(for_push_val_stack, op_stack);
 		//ДУБЛИРОВАНИЕ КОДА, см //DOUBLE
 		if(!Polish_res) {
-			if(!(
-				read_list==1 && op_stack->size==1 &&
-				( (LEX_TOKEN*)st_peek(op_stack) )->token[0] == '('
-			) ){
 				if( is_bracket( st_peek(op_stack) ) )
 					fprintf(out, "ERROR: no closed bracket for '%s'\n", ( (LEX_TOKEN*)(st_peek(op_stack)) )->token );
-				else
-					fprintf(out, "ERROR: wrong expression. not null stack;):\n");
+				else {
+					fprintf(out, "ERROR: wrong expression. not null stack:\n");
+					print_stack(stdout, op_stack, 0);
+				}
 
 				return NULL;
-			}
+			
 		}
+		
 	} else {
 		while( NOT_END( tokens + k ) )
 			st_push(for_push_val_stack, &tokens[k++]);			

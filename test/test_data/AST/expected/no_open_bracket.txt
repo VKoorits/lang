@@ -1,1 +1,1 @@
-ERROR: no closed bracket for '['
+ERROR: no opened bracket for ')'
