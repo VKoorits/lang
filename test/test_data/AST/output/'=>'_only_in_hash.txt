@@ -1,0 +1,1 @@
+ERROR: lex_analyze can`t open file test/test_data/AST/input/'=>'_only_in_hash.l9

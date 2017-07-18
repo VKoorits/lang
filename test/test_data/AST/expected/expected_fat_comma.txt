@@ -1,0 +1,1 @@
+ERROR: between key and value in hash must be '=>'

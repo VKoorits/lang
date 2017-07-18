@@ -82,8 +82,11 @@ int get_op_index(LEX_TOKEN* top) {
 char* analyze(stack_t* op_stack, stack_t* val_stack, LEX_TOKEN* token){
 	int last_code = get_op_index( st_peek(op_stack) );
 	int this_code = get_op_index( token );
+	//IFD print_token(st_peek(op_stack), stdout);
+	//IFD printf("last => %d, this = >%d \n", last_code, this_code);
 
 	int variant = get_condition(last_code, this_code);
+	//IFD printf("variant => %d\n", variant);
 	if( variant > 0) 
 		return functions[variant-1](op_stack, val_stack, token);
 	else {
@@ -148,16 +151,32 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 	if ( read_list )
 		for_push_val_stack = (stack_t*)( ((LEX_TOKEN*)st_peek(val_stack))->token );
 
-
-	int k = 0;
+		int k = 0;
+		if( read_list && read_list != READ_FUNC_ARGS ) {
+			LEX_TOKEN* bracket = create_token_stack(OPERATION_TOKEN);
+			if(read_list == READ_ARRAY){
+				bracket->token = "[";
+				bracket->info = OPEN_SQUARE_BRACKET;
+			} else if (read_list == READ_HASH){
+				bracket->token = "{";
+				bracket->info = OPEN_FIGURE_BRACKET;
+			}
+			
+			st_push(op_stack, bracket);
+						
+			k = 1;
+			end_by_count_cnt--;
+			end_by_bracket_deep++;
+		}
+		
 		if(Polish) {
 		int last_type = UNKNOWN_TOKEN;
 		while(  NOT_END( tokens + k ) > 0 ){
 			
 
 			//BEGIN не удалять, полезно при отладке
-			IFD printf("token => %s\n read_list => %d\t", tokens[k].token, read_list);
-			IFD print_stack(stdout, op_stack, 0);
+			//IFD printf("token => %s\n read_list => %d, k=>%d\t", tokens[k].token, read_list, k);
+			//IFD print_stack(stdout, op_stack, 0);
 			//print_stack(stdout, val_stack, 0);
 			//printf("********************\n");*/
 			
@@ -184,11 +203,11 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 					// первая единица => польская нотация
 					//вторая указывает на чтение списка
 					int delta_func = 0;
-					IFD printf("\tBEFORE RECURSION end_deep => %d\n", end_by_bracket_deep);
 					end_by_bracket_deep = 0;
 					++end_by_count_cnt;
+					
 					func_args->token = (char*)generate_stack_recursive(
-						out, args_stack, tokens+k, end_by_round_bracket, 1, &delta_func, read_list + 1);
+						out, args_stack, tokens+k, end_by_round_bracket, 1, &delta_func, READ_FUNC_ARGS);
 					end_by_bracket_deep = 1;
 					if( func_args->token == NULL )
 						return NULL;
@@ -206,38 +225,96 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 					k+=delta_func; continue;
 		
 				}
-			} else if( !strcmp( tokens[k].token, ",") ){	
-				if( read_list ){
-					int Polish_res = end_Polish_expr(for_push_val_stack, op_stack);
-					//ДУБЛИРОВАНИЕ КОДА, см //DOUBLE
-					if(!Polish_res) {
-						if(!(
-							read_list && op_stack->size==1 &&
-							( (LEX_TOKEN*)st_peek(op_stack) )->token[0] == '('
-						) ){
-							if( is_bracket( st_peek(op_stack) ) )
-								fprintf(out, "ERROR: no closed bracket for '%s'\n", ( (LEX_TOKEN*)(st_peek(op_stack)) )->token );
-							else
-								fprintf(out, "ERROR: wrong expression. not null stack;):\n");
-
+			} else if( !strcmp( tokens[k].token, "[") ){
+				stack_t* list_stack = stack_new();
+				st_push( list_stack, create_token_stack( LIST_EL_TOKEN ) );
+				
+				LEX_TOKEN* array = create_token_stack(ARRAY_TOKEN);
+				
+				int delta_func = 0;
+				end_by_bracket_deep = 0;
+				++end_by_count_cnt;
+				
+				array->token = (char*)generate_stack_recursive(
+					out, list_stack, tokens+k, end_by_square_bracket, 1, &delta_func, READ_ARRAY);
+				end_by_bracket_deep = 1;
+				
+				if( array->token == NULL )
+					return NULL;
+					
+				st_push(for_push_val_stack, array);
+				k+=delta_func; continue;			
+			} else if( !strcmp( tokens[k].token, "{") ){
+				stack_t* list_stack = stack_new();
+				st_push( list_stack, create_token_stack( LIST_EL_TOKEN ) );
+				
+				LEX_TOKEN* array = create_token_stack(HASH_TOKEN);
+				
+				int delta_func = 0;
+				end_by_bracket_deep = 0;
+				++end_by_count_cnt;
+				
+				array->token = (char*)generate_stack_recursive(
+					out, list_stack, tokens+k, end_by_figure_bracket, 1, &delta_func, READ_HASH);
+				end_by_bracket_deep = 1;
+				
+				if( array->token == NULL )
+					return NULL;
+					
+				st_push(for_push_val_stack, array);
+				k+=delta_func; continue;			
+			} else if( !strcmp( tokens[k].token, ",") || !strcmp( tokens[k].token, "=>") ){
+				////про использование жирной запятой
+				if( read_list == READ_HASH ){
+					if( val_stack->size % 2){
+						if( tokens[k].token[0] == ',' ){
+							fprintf(out, "ERROR: between key and value in hash must be '=>'\n");
+							return NULL; 
+						}
+					} else {
+						if( tokens[k].token[0] == '=' ){
+							fprintf(out, "ERROR: betwen pair in hash mast be ','\n");
 							return NULL;
 						}
 					}
-					
+				} else if( tokens[k].token[0] == '=' ){
+					fprintf(out, "ERROR: '=>' can be only in hash pair\n");
+				}
+				////
+				
+				if( read_list ){
+					int Polish_res = end_Polish_expr(for_push_val_stack, op_stack);
+					int type_bracket = BASE_BRACKET + is_bracket(st_peek(op_stack) );
+					if(!(
+						read_list && op_stack->size==1 &&
+						type_bracket >= OPEN_ROUND_BRACKET && type_bracket <= OPEN_FIGURE_BRACKET
+					) ) {
+						if( is_bracket( st_peek(op_stack) ) )
+							fprintf(out, "ERROR: no closed bracket for '%s'\n", ( (LEX_TOKEN*)(st_peek(op_stack)) )->token );
+						else
+							fprintf(out, "ERROR: wrong expression. not null stack;):\n");
+						return NULL;
+					} else {
+						int size = ((stack_t*)(((LEX_TOKEN*)(st_peek(val_stack)))->token))->size;
+						if(  size == 0 ) {
+							fprintf(out, "ERROR: empty element in colllection\n");
+							return NULL;
+						}
+					}
 					st_push( val_stack, create_token_stack( LIST_EL_TOKEN ) );
 					for_push_val_stack = (stack_t*)( ((LEX_TOKEN*)st_peek(val_stack))->token );
 				} else {
-					fprintf(out, "ERROR: zpt no in list\n");
+					fprintf(out, "TIME ERROR: zpt no in list\n");
 					return NULL;
 				}
 				k++; continue;
 			}
 			
 			
-			
+			//IFD print_token(tokens + k, stdout);
 			if (tokens[k].type != OPERATION_TOKEN)
 				st_push(for_push_val_stack, &tokens[k]);
-			else{
+			else {				
 				char* analyze_msg =  analyze(op_stack, for_push_val_stack, &tokens[k]);
 				if( analyze_msg ) {
 					fprintf(out, "%s", analyze_msg);
@@ -251,8 +328,8 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 		
 		
 		
-		IFD printf("RECURSION --\t op_stack => ");
-		IFD print_stack(stdout, op_stack, 0);
+		//IFD printf("RECURSION --\t op_stack => ");
+		//IFD print_stack(stdout, op_stack, 0);
 		int Polish_res = end_Polish_expr(for_push_val_stack, op_stack);
 		//ДУБЛИРОВАНИЕ КОДА, см //DOUBLE
 		if(!Polish_res) {
@@ -260,7 +337,7 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 					fprintf(out, "ERROR: no closed bracket for '%s'\n", ( (LEX_TOKEN*)(st_peek(op_stack)) )->token );
 				else {
 					fprintf(out, "ERROR: wrong expression. not null stack:\n");
-					print_stack(stdout, op_stack, 0);
+					IFD print_stack(stdout, op_stack, 0);
 				}
 
 				return NULL;
@@ -271,7 +348,11 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 		while( NOT_END( tokens + k ) )
 			st_push(for_push_val_stack, &tokens[k++]);			
 	}
-	
+	//нечетное количество элементов в хэше
+	if(read_list == READ_HASH && val_stack->size % 2){
+		fprintf(out, "ERROR: strange count element in hash\n");
+		return NULL;
+	}
 	
 	*delta = k;
 	delete_stack( op_stack );

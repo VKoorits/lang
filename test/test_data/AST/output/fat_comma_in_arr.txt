@@ -1,0 +1,10 @@
+ERROR: '=>' can be only in hash pair
+ERROR: '=>' can be only in hash pair
+lst ARR_0 = NULL
+ARR_0 :ELEM_1 ELEM_2 ELEM_3 ELEM_4 ELEM_5 ELEM_6 NULL
+ELEM_1 :1 NULL
+ELEM_2 :2 NULL
+ELEM_3 :3 NULL
+ELEM_4 :4 NULL
+ELEM_5 :5 NULL
+ELEM_6 :6 NULL

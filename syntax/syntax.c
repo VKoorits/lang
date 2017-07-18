@@ -5,8 +5,8 @@ char* deep_words[CNT_DEEP_WORD] = {"if", "else", "while", "sub"};
 static char* operators_3[] = {"**=", "//=", "<<=", ">>="};
 static int 	property_3[] = {EQUAL, EQUAL, EQUAL, EQUAL};
 
-static char* operators_2[] = {"+=", "-=", "*=", "/=", "%=", "**", "//",">>", "<<",  "&&",   "^^",  "||",  "->", ">=", "<=", "==", "!="};
-static int 	property_2[] = {EQUAL,EQUAL,EQUAL,EQUAL,EQUAL, POW, MUL, SHIFT,SHIFT,LOG_AND,LOG_AND,LOG_OR, -1,   CMP,  CMP,  CMP,  CMP};
+static char* operators_2[] = {"+=", "-=", "*=", "/=", "%=", "**", "//",">>", "<<",  "&&",   "^^",  "||",  "->", ">=", "<=", "==", "!=", "=>"};
+static int 	property_2[] = {EQUAL,EQUAL,EQUAL,EQUAL,EQUAL, POW, MUL, SHIFT,SHIFT,LOG_AND,LOG_AND,LOG_OR,   -1,   CMP,  CMP,  CMP,  CMP,  -1};
 
 static char* char_operators[] = {"not", "and",   "or", "eq", "in", "xor"};
 static int		property_char[]= { NOT, LOG_AND, LOG_OR, CMP, IN,   LOG_AND};

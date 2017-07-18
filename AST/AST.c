@@ -12,57 +12,39 @@ int next_last;
 //##################### GLOBAL_VARIABLES
 
 int end_by_count(LEX_TOKEN* tok) { return end_by_count_cnt--; }
-int end_by_round_bracket(LEX_TOKEN* tok){
-	IFD printf("IN FUNCTION: count_cnt => %d deep => %d\n", end_by_count_cnt, end_by_bracket_deep);
+int end_by_bracket(LEX_TOKEN* tok, char* opened, char* closed){
 	if(next_last){
-		IFD printf("return 0, by next_last\n");
 		next_last = 0;
-		//++end_by_count_cnt;
 		return 0;
 	}
 	--end_by_count_cnt;
-	if( end_by_count_cnt < 0){ IFD printf("return 0 by cnt\t"); return 0; }
+	if( end_by_count_cnt < 0) return 0;
 	
-	if( !strcmp( tok->token, ")" ) )
+	if( !strcmp( tok->token, closed ) )
 		--end_by_bracket_deep;
-	else if ( !strcmp( tok->token, "(") ){
+	else if ( !strcmp( tok->token, opened) ){
 		++end_by_bracket_deep;
 		next_last = 0;
 	}
 		
 	if( end_by_bracket_deep > 0 ){ 
-		IFD printf("return 1, by deep\t");
-		return 1;
 		next_last = 0;
+		return 1;
 	} else if (end_by_bracket_deep == 0 ){
 		next_last = 1;
-		IFD printf("return 1, by next_last\t");
 		return 1;
 	}
 	
-	IFD printf("return 1, by just\t"); return 1;	
+	return 1;
+}
+int end_by_round_bracket(LEX_TOKEN* tok){
+	return end_by_bracket(tok, "(", ")");
 }
 int end_by_square_bracket(LEX_TOKEN* tok){
-	if( !strcmp( tok->token, "]" ) )
-		--end_by_bracket_deep;
-	else if ( !strcmp( tok->token, "[") )
-		++end_by_bracket_deep;
-
-	--end_by_count_cnt;
-	if( !end_by_count) return 0;
-	if( end_by_bracket_deep > 0 ) return 1;
-	return 0;		
+	return end_by_bracket(tok, "[", "]");	
 }
 int end_by_figure_bracket(LEX_TOKEN* tok){
-	if( !strcmp( tok->token, "}" ) )
-		--end_by_bracket_deep;
-	else if ( !strcmp( tok->token, "{") )
-		++end_by_bracket_deep;
-
-	--end_by_count_cnt;
-	if( !end_by_count) return 0;
-	if( end_by_bracket_deep > 0 ) return 1;
-	return 0;		
+	return end_by_bracket(tok, "{", "}");
 }
 //#####################
 
@@ -86,6 +68,10 @@ void print_stack(FILE* out, stack_t* stack, int n) {
 			fprintf(out, "CALL_%d ", num++);
 		else if( TOKEN_I->type == LIST_EL_TOKEN )
 			fprintf(out, "ELEM_%d ", num++);
+		else if( TOKEN_I->type == ARRAY_TOKEN )
+			fprintf(out, "ARR_%d ", num++);
+		else if( TOKEN_I->type == HASH_TOKEN )
+			fprintf(out, "HASH_%d ", num++);
 		else
 			fprintf(out, "%s ", TOKEN_I->token);
 	}
@@ -109,6 +95,12 @@ void print_stack(FILE* out, stack_t* stack, int n) {
 			print_stack( out, (stack_t*)TOKEN_I->token, num);
 		} else if (TOKEN_I->type == LIST_EL_TOKEN ) {
 			fprintf(out, "ELEM_%d :", num_cp++);
+			print_stack( out, (stack_t*)TOKEN_I->token, num);
+		} else if (TOKEN_I->type == ARRAY_TOKEN ) {
+			fprintf(out, "ARR_%d :", num_cp++);
+			print_stack( out, (stack_t*)TOKEN_I->token, num);
+		} else if (TOKEN_I->type == HASH_TOKEN ) {
+			fprintf(out, "HASH_%d :", num_cp++);
 			print_stack( out, (stack_t*)TOKEN_I->token, num);
 		}
 	#undef TOKEN_I

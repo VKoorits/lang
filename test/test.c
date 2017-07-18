@@ -160,7 +160,13 @@ int test() {
 		"unclosed_bracket_expr",
 		"wrong_bracket_seq",
 		"unclosed_bracket_func",
-		"func_like_arg"
+		"func_like_arg",
+		"normal_data_struct",
+		"expected_fat_comma",
+		"comma_between_pair",
+		"fat_comma_in_arr",
+		"empty_element",
+		"wrong_hash_size"
 	};
 	
 	printf("AST_TEST:\n");

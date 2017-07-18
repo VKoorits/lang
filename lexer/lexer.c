@@ -24,23 +24,27 @@ void mark() { printf("\t==-==\n\t  |\n\t==-==\n");}
 
 
 void print_token(const LEX_TOKEN* tok, FILE* output_stream){
-	char* token_type;
-	if(tok->type == UNKNOWN_TOKEN)
-		token_type = "UNKNOWN_TOKEN";
-	else if(tok->type == INT_NUM_TOKEN)
-		token_type = "INT_NUM_TOKEN";
-	else if(tok->type == FLOAT_NUM_TOKEN)
-		token_type = "FLOAT_NUM_TOKEN";
-	else if(tok->type == STRING_TOKEN)
-		token_type = "STRING_TOKEN";
-	else if(tok->type == IDENT_TOKEN)
-		token_type = "IDENT_TOKEN";
-	else if(tok->type == OPERATION_TOKEN)
-		token_type = "OPERATION_TOKEN";
-	else if(tok->type == RESERVED_TOKEN)
-		token_type = "RESERVED_TOKEN";
-	else token_type = "\n\n\n\nSTRANGE_TOKEN_TYPE\n\n\n\n\a";
-	fprintf(output_stream, "%s: %s\n", token_type, tok->token);
+	if(tok) {
+		char* token_type;
+		if(tok->type == UNKNOWN_TOKEN)
+			token_type = "UNKNOWN_TOKEN";
+		else if(tok->type == INT_NUM_TOKEN)
+			token_type = "INT_NUM_TOKEN";
+		else if(tok->type == FLOAT_NUM_TOKEN)
+			token_type = "FLOAT_NUM_TOKEN";
+		else if(tok->type == STRING_TOKEN)
+			token_type = "STRING_TOKEN";
+		else if(tok->type == IDENT_TOKEN)
+			token_type = "IDENT_TOKEN";
+		else if(tok->type == OPERATION_TOKEN)
+			token_type = "OPERATION_TOKEN";
+		else if(tok->type == RESERVED_TOKEN)
+			token_type = "RESERVED_TOKEN";
+		else token_type = "\n\n\n\nSTRANGE_TOKEN_TYPE\n\n\n\n\a";
+		fprintf(output_stream, "%s: %s\n", token_type, tok->token);
+	} else {
+		fprintf(output_stream, "NULL POINTER TO LEX_TOKEN\n");
+	}
 }
 
 

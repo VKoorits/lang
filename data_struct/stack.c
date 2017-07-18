@@ -28,6 +28,7 @@ stack_t* stack_new() {
 	return this;
 }
 
+
 void delete_stack(stack_t* this) {
 	free(this->val);
 	free(this);
