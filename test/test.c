@@ -124,7 +124,7 @@ int fio_test(char* path, char* filename, void (*tested_func)(char*,FILE*) ) {
 }
 
 int test() {
-	//LEXER
+	int cnt_test_ok = 0;
 	char* lexer_filenames[] = {
 		"two_point_in_num",
 		"no_closing_quote",
@@ -138,11 +138,11 @@ int test() {
 		"big_shift",
 		"shift_start"
 	};
-	printf("LEXR_TEST:\n");
+	printf("LEXER_TEST:\n");
 	for(int i = 0; i < sizeof(lexer_filenames) / sizeof(char*); i++) {
 		printf("	TEST %25s: ", lexer_filenames[i]);	
 		int res = fio_test("lexer/", lexer_filenames[i], test_lexer);
-		if(res == 1) printf("OK\n");
+		if(res == 1){ printf("OK\n"); ++cnt_test_ok; }
 	}
 	for(int i = 0; i<40; i++) printf("="); printf("\n");
 	
@@ -166,14 +166,21 @@ int test() {
 		"comma_between_pair",
 		"fat_comma_in_arr",
 		"empty_element",
-		"wrong_hash_size"
+		"wrong_hash_size",
+		"two_operations",
+		"num_and_str_near"
 	};
 	
 	printf("AST_TEST:\n");
 	for(int i = 0; i < sizeof(AST_filenames) / sizeof(char*); i++) {
 		printf("	TEST %25s: ", AST_filenames[i]);	
 		int res = fio_test("AST/", AST_filenames[i], test_AST_builder);
-		if(res == 1) printf("OK\n");
+		if(res == 1){ printf("OK\n"); ++cnt_test_ok; }
 	}
 	printf("\n");
+	int count_test = (sizeof(lexer_filenames) + sizeof(AST_filenames))/sizeof(char*);
+	if( count_test == cnt_test_ok )
+		printf("All %d tests successfully passed :D\n", count_test);
+	else
+		printf("fail %d test from %d :G\n", count_test-cnt_test_ok, count_test);
 }

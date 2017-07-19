@@ -137,6 +137,12 @@ int end_Polish_expr(stack_t* val_stack, stack_t* op_stack){
 	return 1;
 }
 
+void error_tokens_near(FILE* out, LEX_TOKEN* tokens, int k){
+	fprintf(out, "ERROR: this tokens can`t be near:\n\t");
+	print_token(tokens+k-1, out);
+	fprintf(out, "\t");
+	print_token(tokens+k, out);
+}
 
 
 // https://master.virmandy.net/perevod-iz-infiksnoy-notatsii-v-postfiksnuyu-obratnaya-polskaya-zapis/
@@ -172,7 +178,33 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 		if(Polish) {
 		int last_type = UNKNOWN_TOKEN;
 		while(  NOT_END( tokens + k ) > 0 ){
-			
+			if(k){
+				int error = 0;
+				if(//две цифры или строки рядом
+					(
+						  tokens[k].type == STRING_TOKEN
+						||tokens[k].type == INT_NUM_TOKEN
+						||tokens[k].type == FLOAT_NUM_TOKEN
+					)
+					  &&
+					(
+						  tokens[k-1].type == STRING_TOKEN
+						||tokens[k-1].type == INT_NUM_TOKEN
+						||tokens[k-1].type == FLOAT_NUM_TOKEN
+					)
+				) {
+					error_tokens_near(out, tokens, k);
+					return NULL;
+				} else if(
+					  tokens[k].type == OPERATION_TOKEN
+					&&tokens[k-1].type == OPERATION_TOKEN
+					&&tokens[k].info != -1
+					&& tokens[k-1].info != -1
+				){
+					error_tokens_near(out, tokens, k);
+					return NULL;
+				}
+			}
 
 			//BEGIN не удалять, полезно при отладке
 			//IFD printf("token => %s\n read_list => %d, k=>%d\t", tokens[k].token, read_list, k);
@@ -226,6 +258,7 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 		
 				}
 			} else if( !strcmp( tokens[k].token, "[") ){
+				//TODO избавиться от дублирования для "[" и "{"
 				stack_t* list_stack = stack_new();
 				st_push( list_stack, create_token_stack( LIST_EL_TOKEN ) );
 				
@@ -245,6 +278,7 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 				st_push(for_push_val_stack, array);
 				k+=delta_func; continue;			
 			} else if( !strcmp( tokens[k].token, "{") ){
+				//TODO избавиться от дублирования для "[" и "{"
 				stack_t* list_stack = stack_new();
 				st_push( list_stack, create_token_stack( LIST_EL_TOKEN ) );
 				
@@ -311,7 +345,7 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 			}
 			
 			
-			//IFD print_token(tokens + k, stdout);
+			
 			if (tokens[k].type != OPERATION_TOKEN)
 				st_push(for_push_val_stack, &tokens[k]);
 			else {				
@@ -331,7 +365,6 @@ stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* toke
 		//IFD printf("RECURSION --\t op_stack => ");
 		//IFD print_stack(stdout, op_stack, 0);
 		int Polish_res = end_Polish_expr(for_push_val_stack, op_stack);
-		//ДУБЛИРОВАНИЕ КОДА, см //DOUBLE
 		if(!Polish_res) {
 				if( is_bracket( st_peek(op_stack) ) )
 					fprintf(out, "ERROR: no closed bracket for '%s'\n", ( (LEX_TOKEN*)(st_peek(op_stack)) )->token );

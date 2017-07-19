@@ -5,14 +5,20 @@ char* deep_words[CNT_DEEP_WORD] = {"if", "else", "while", "sub"};
 static char* operators_3[] = {"**=", "//=", "<<=", ">>="};
 static int 	property_3[] = {EQUAL, EQUAL, EQUAL, EQUAL};
 
+//операторы с приоритетом -1 приравниваются к IDENT токенам,
+//т.е могут идти подряд несколько сразу:
+//  --for line in lines:
+//  --while([...
+//но не:
+//  --for char in "string":
 static char* operators_2[] = {"+=", "-=", "*=", "/=", "%=", "**", "//",">>", "<<",  "&&",   "^^",  "||",  "->", ">=", "<=", "==", "!=", "=>"};
-static int 	property_2[] = {EQUAL,EQUAL,EQUAL,EQUAL,EQUAL, POW, MUL, SHIFT,SHIFT,LOG_AND,LOG_AND,LOG_OR,   -1,   CMP,  CMP,  CMP,  CMP,  -1};
+static int 	property_2[] = {EQUAL,EQUAL,EQUAL,EQUAL,EQUAL, POW, MUL, SHIFT,SHIFT,LOG_AND,LOG_AND,LOG_OR,   -2,   CMP,  CMP,  CMP,  CMP,  -1};
 
 static char* char_operators[] = {"not", "and",   "or", "eq", "in", "xor"};
 static int		property_char[]= { NOT, LOG_AND, LOG_OR, CMP, IN,   LOG_AND};
 
 static const char operations[] = {'+', '-', '*', '/', '%', '.', ',',  '=',  '!', '^',   '>', '<', '&',    '|', '(', '[', '{', '}', ']', ')', ';',':' };
-static int 	property_1[] = 		{ADD, ADD, MUL, MUL, MUL, DOT, -1,  EQUAL, NOT,BIT_XOR,CMP, CMP,BIT_AND,BIT_OR, -1, -1,  -1,  -1,   -1,   -1, -1, -1 };
+static int 	property_1[] = 		{ADD, ADD, MUL, MUL, MUL, DOT, -2,  EQUAL, NOT,BIT_XOR,CMP, CMP,BIT_AND,BIT_OR, -1, -1,  -1,  -1,   -1,   -1, -1, -2 };
 
 char brackets_char[6] = {'(', '[', '{', ')', ']', '}' };
 
