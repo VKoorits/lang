@@ -40,11 +40,10 @@
 #define CLOSED_FIGURE_BRACKET (106)
 
 
-stack_t* build_AST(ALL_LEX_TOKENS*, FILE*);
+stack_t* build_AST(ALL_LEX_TOKENS*, FILE*, hash_t*);
 void print_stack(FILE*, stack_t*, int);
-
+void print_function(FILE*, function_t*);
 stack_t* generate_stack(FILE* out, stack_t*, LEX_TOKEN*, int(*)(LEX_TOKEN*), int);
-int get_op_index(LEX_TOKEN*);
 
 
 //END functions

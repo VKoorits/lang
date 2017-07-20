@@ -4,6 +4,7 @@
 #include "lexer/lexer.h"
 #include "test/test.h"
 #include "AST/AST.h"
+#include "stat_analyzer/stat_analyzer.h"
 
 
 int main(int argc, char* argv[]){
@@ -17,15 +18,14 @@ int main(int argc, char* argv[]){
 		}
 	} else {	
 		
-		FILE* f = stderr;
-		ALL_LEX_TOKENS* all_token = lex_analyze("lang_code/file.l", f);
+		FILE* out = stderr;
+		ALL_LEX_TOKENS* all_token = lex_analyze("lang_code/file.l", out);
 		if(all_token){
-			stack_t* big_stack = build_AST(all_token, f);	
-			
-			//
-			if(big_stack)
-				print_stack(stdout, big_stack, 0);
-			//	
+			hash_t* functions = hash_new();
+			stack_t* big_stack = build_AST(all_token, out, functions);	
+			if(big_stack) {
+				stat_analyze(out, big_stack, functions);
+			}
 		}
 	}
 }

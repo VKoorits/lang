@@ -6,7 +6,7 @@ extern int end_by_bracket_deep;
 char brackets_char[6];
 
 
-int get_condition(int last_code, int this_code) {
+static int get_condition(int last_code, int this_code) {
 
 	if( last_code == EMPTY ) {
 		if(this_code >= CLOSED_ROUND_BRACKET && this_code <= CLOSED_FIGURE_BRACKET)
@@ -38,24 +38,24 @@ int get_condition(int last_code, int this_code) {
 	else return 1;
 }
 
-char* analyze(stack_t*, stack_t*, LEX_TOKEN*);
+static char* analyze(stack_t*, stack_t*, LEX_TOKEN*);
 
-char* func1(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
+static char* func1(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
 	st_push(Moscow, token);
 	return NULL;
 }
-char* func2(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
+static char* func2(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
 	st_push(Kiev, st_pop(Moscow));
 	return analyze(Moscow, Kiev, token);
 }
-char* func3(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
+static char* func3(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
 	st_pop(Moscow);
 	return NULL;
 }
-char* func4(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
+static char* func4(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
 	return NULL;
 }
-char* func5(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
+static char* func5(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
 	char *template = "ERROR: no opened bracket for '%s'\n";
 	char* error_msg = malloc( strlen(template) + strlen( token->token ) );
 	sprintf(error_msg, template, token->token);
@@ -65,8 +65,8 @@ char* func5(stack_t* Moscow, stack_t* Kiev, LEX_TOKEN* token){
 static char* (*functions[5])(stack_t*, stack_t*, LEX_TOKEN*) = 
 								{ func1, func2, func3, func4, func5 };
 
-int is_bracket(LEX_TOKEN*);
-int get_op_index(LEX_TOKEN* top) {
+static int is_bracket(LEX_TOKEN*);
+static int get_op_index(LEX_TOKEN* top) {
 	int index = EMPTY;
 	if(top) {
 		index = top->info;
@@ -79,7 +79,7 @@ int get_op_index(LEX_TOKEN* top) {
 	return index;
 }
 
-char* analyze(stack_t* op_stack, stack_t* val_stack, LEX_TOKEN* token){
+static char* analyze(stack_t* op_stack, stack_t* val_stack, LEX_TOKEN* token){
 	int last_code = get_op_index( st_peek(op_stack) );
 	int this_code = get_op_index( token );
 	//IFD print_token(st_peek(op_stack), stdout);
@@ -107,7 +107,7 @@ LEX_TOKEN* create_token_stack(int token_type) {
 	return tok;
 }
 
-int is_bracket(LEX_TOKEN* token){
+static int is_bracket(LEX_TOKEN* token){
 	if( token->type == OPERATION_TOKEN ) {
 		switch(token->token[0]){
 			case '(': return 1;
@@ -122,7 +122,7 @@ int is_bracket(LEX_TOKEN* token){
 }
 
 
-int end_Polish_expr(stack_t* val_stack, stack_t* op_stack){
+static int end_Polish_expr(stack_t* val_stack, stack_t* op_stack){
 	while( st_peek(op_stack) ) {
 			int ind = get_op_index(st_peek(op_stack));
 			if( ind >= EQUAL && ind <= DOT){
@@ -137,7 +137,7 @@ int end_Polish_expr(stack_t* val_stack, stack_t* op_stack){
 	return 1;
 }
 
-void error_tokens_near(FILE* out, LEX_TOKEN* tokens, int k){
+static void error_tokens_near(FILE* out, LEX_TOKEN* tokens, int k){
 	fprintf(out, "ERROR: this tokens can`t be near:\n\t");
 	print_token(tokens+k-1, out);
 	fprintf(out, "\t");
@@ -146,7 +146,7 @@ void error_tokens_near(FILE* out, LEX_TOKEN* tokens, int k){
 
 
 // https://master.virmandy.net/perevod-iz-infiksnoy-notatsii-v-postfiksnuyu-obratnaya-polskaya-zapis/
-stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* tokens,
+static stack_t* generate_stack_recursive(FILE* out, stack_t* val_stack, LEX_TOKEN* tokens,
 						int(*NOT_END)(LEX_TOKEN*), int Polish, int* delta, int read_list){
 	
 	

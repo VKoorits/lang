@@ -4,7 +4,6 @@
 TODO придумать какой спецсимвол, например слеш, решётка или собака
 TODO сделать обработку скобок, их можно вставлять куда и сколько угодно  
 */
-hash_t* functions = NULL;
 ////////////////////
 int end_by_count_cnt;
 int end_by_bracket_deep;
@@ -115,7 +114,7 @@ void print_function(FILE* out, function_t* func){
 }
  
 
-char* new_function(stack_t* head, stack_t* body){
+static char* new_function(stack_t* head, stack_t* body, hash_t* functions){
 //TODO обработка аргументов функции по хэдеру
 //TODO улучшить тексты ошибок
 	if( ((LEX_TOKEN*)(head->val[0]))->type != IDENT_TOKEN ) {
@@ -137,12 +136,9 @@ char* new_function(stack_t* head, stack_t* body){
 	return NULL;
 }
 
-void init_global_var(){
-	functions = hash_new();
-}
 
 
-int decrement_deep(FILE* out, stack_t* big_stack, stack_t* deep_stack, int* can_else){
+static int decrement_deep(FILE* out, stack_t* big_stack, stack_t* deep_stack, int* can_else, hash_t* functions){
 	//снимем верхний стек
 	stack_t* top = st_pop( big_stack );
 	//кладем его в стек на уровень ниже
@@ -171,7 +167,8 @@ int decrement_deep(FILE* out, stack_t* big_stack, stack_t* deep_stack, int* can_
 	} else if( !strcmp(tok->token, "sub") ) {
 		char* new_function_error = new_function(
 					(stack_t*)( (LEX_TOKEN*)st_pop( st_peek(big_stack) ) )->token,
-					(stack_t*)( (LEX_TOKEN*)st_pop( st_peek(big_stack) ) )->token
+					(stack_t*)( (LEX_TOKEN*)st_pop( st_peek(big_stack) ) )->token,
+					functions
 		);				
 		if(new_function_error){
 			fprintf(out, "%s", new_function_error);
@@ -183,9 +180,7 @@ int decrement_deep(FILE* out, stack_t* big_stack, stack_t* deep_stack, int* can_
 }
 
 
-stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out){
-	init_global_var();
-
+stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out, hash_t* functions){
 	LEX_TOKEN* tokens = all_token->tokens;
 
 	stack_t* big_stack = stack_new();
@@ -201,7 +196,7 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out){
 
 		//уменьшение отступа до нужной глубины
 		while(deep_stack->size > all_token->deeper[ str_num ] ){
-			int decrement_ok = decrement_deep(out, big_stack, deep_stack, &can_else);
+			int decrement_ok = decrement_deep(out, big_stack, deep_stack, &can_else, functions);
 			if(!decrement_ok) return NULL;
 		}
 		int deep_word_num;
@@ -260,9 +255,10 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out){
 
 	//уменьшение отступа до нуля
 	while(deep_stack->size > 0 ){
-			int decrement_ok = decrement_deep(out, big_stack, deep_stack, &can_else);
+			int decrement_ok = decrement_deep(out, big_stack, deep_stack, &can_else, functions);
 			if(!decrement_ok) return NULL;
 	}
+	
 	return st_peek(big_stack);	
 }
 

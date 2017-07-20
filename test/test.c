@@ -84,12 +84,24 @@ void test_lexer(char* filename, FILE* out){
 void test_AST_builder(char* filename, FILE* out){
 	ALL_LEX_TOKENS* all_token = lex_analyze( filename, out);
 	if(all_token){
-		stack_t* big_stack = build_AST(all_token, out);
+		hash_t* functions = hash_new();
+		stack_t* big_stack = build_AST(all_token, out, functions);
 		if(big_stack){
 			print_stack( out, big_stack, 0);
 		}
 	}
 }
+void test_stat_analyze(char* filename, FILE* out) {
+	ALL_LEX_TOKENS* all_token = lex_analyze( filename, out);
+	if(all_token){
+		hash_t* functions = hash_new();
+		stack_t* big_stack = build_AST(all_token, out, functions);
+		if(big_stack){
+			big_stack = stat_analyze(out, big_stack, functions);
+		}
+	}
+}
+
 
 int fio_test(char* path, char* filename, void (*tested_func)(char*,FILE*) ) { 
 	/*
@@ -177,8 +189,24 @@ int test() {
 		int res = fio_test("AST/", AST_filenames[i], test_AST_builder);
 		if(res == 1){ printf("OK\n"); ++cnt_test_ok; }
 	}
+	
+	char* stat_analyze_filenames[] = {
+		"undeclared_function"
+	};
+	printf("STAT_ANALYZE_TEST:\n");
+	for(int i = 0; i < sizeof(stat_analyze_filenames) / sizeof(char*); i++) {
+		printf("	TEST %25s: ", stat_analyze_filenames[i]);	
+		int res = fio_test("stat_analyze/", stat_analyze_filenames[i], test_stat_analyze);
+		if(res == 1){ printf("OK\n"); ++cnt_test_ok; }
+	}
+
+
 	printf("\n");
-	int count_test = (sizeof(lexer_filenames) + sizeof(AST_filenames))/sizeof(char*);
+	int count_test = (
+		sizeof(lexer_filenames) + 
+		sizeof(AST_filenames) + 
+		sizeof(stat_analyze_filenames)
+	)/sizeof(char*);
 	if( count_test == cnt_test_ok )
 		printf("All %d tests successfully passed :D\n", count_test);
 	else
