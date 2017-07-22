@@ -1,6 +1,8 @@
 #include "syntax.h"
 
 char* deep_words[CNT_DEEP_WORD] = {"if", "else", "while", "sub"};
+//deep words расположены в начале, за /**/ идут остальные ключевые слова
+char* key_words[CNT_KEY_WORDS] = {"if", "else", "while", "sub",/**/ "var", "return"};
 
 static char* operators_3[] = {"**=", "//=", "<<=", ">>="};
 static int 	property_3[] = {EQUAL, EQUAL, EQUAL, EQUAL};
@@ -15,7 +17,7 @@ static char* operators_2[] = {"+=", "-=", "*=", "/=", "%=", "**", "//",">>", "<<
 static int 	property_2[] = {EQUAL,EQUAL,EQUAL,EQUAL,EQUAL, POW, MUL, SHIFT,SHIFT,LOG_AND,LOG_AND,LOG_OR,   -2,   CMP,  CMP,  CMP,  CMP,  -1};
 
 static char* char_operators[] = {"not", "and",   "or", "eq", "in", "xor"};
-static int		property_char[]= { NOT, LOG_AND, LOG_OR, CMP, IN,   LOG_AND};
+static int		property_char[]= { NOT, LOG_AND, LOG_OR, CMP, IN,  LOG_AND};
 
 static const char operations[] = {'+', '-', '*', '/', '%', '.', ',',  '=',  '!', '^',   '>', '<', '&',    '|', '(', '[', '{', '}', ']', ')', ';',':' };
 static int 	property_1[] = 		{ADD, ADD, MUL, MUL, MUL, DOT, -2,  EQUAL, NOT,BIT_XOR,CMP, CMP,BIT_AND,BIT_OR, -1, -1,  -1,  -1,   -1,   -1, -1, -2 };
@@ -25,9 +27,9 @@ char brackets_char[6] = {'(', '[', '{', ')', ']', '}' };
 //##########################################
 //##########################################
 //##########################################
-int deep_word(char* word) {
-	for(int i = 0; i < sizeof(deep_words)/sizeof(char*); ++i)
-		if( !strcmp(word, deep_words[i]) )
+int is_key_word(char* word) {
+	for(int i = 0; i < sizeof(key_words)/sizeof(char*); ++i)
+		if( !strcmp(word, key_words[i]) )
 			return i+1;
 	return 0;
 }
@@ -42,8 +44,8 @@ int isop(char c){
 int is_char_operator(char* op){
 	for(int i=0; i < sizeof(char_operators)/sizeof(char*); i++)
 		if( !strcmp(op, char_operators[i]) )
-			return true;
-	return false;
+			return property_char[i];
+	return 0;
 }
 
 //по трём символам, первый из которых принадлежит operations, определяет приоритет операции

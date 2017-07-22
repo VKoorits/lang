@@ -1,8 +1,8 @@
 #include "AST.h"
 
 /*
+TODO! ошибки при встрече некоторых ключевых слов не в начале строки
 TODO придумать какой спецсимвол, например слеш, решётка или собака
-TODO сделать обработку скобок, их можно вставлять куда и сколько угодно  
 */
 ////////////////////
 int end_by_count_cnt;
@@ -11,6 +11,12 @@ int next_last;
 //##################### GLOBAL_VARIABLES
 
 int end_by_count(LEX_TOKEN* tok) { return end_by_count_cnt--; }
+int end_by_fat(LEX_TOKEN* tok) {
+	--end_by_count_cnt;
+	if( end_by_count_cnt < 0) return 0;
+	if( tok->type == OPERATION_TOKEN && tok->token[0] == ',') return 0;
+	return 1;
+}
 int end_by_bracket(LEX_TOKEN* tok, char* opened, char* closed){
 	if(next_last){
 		next_last = 0;
@@ -71,6 +77,8 @@ void print_stack(FILE* out, stack_t* stack, int n) {
 			fprintf(out, "ARR_%d ", num++);
 		else if( TOKEN_I->type == HASH_TOKEN )
 			fprintf(out, "HASH_%d ", num++);
+		else if( TOKEN_I->type == INIT_VAR_TOKEN )
+			fprintf(out, "INIT_%d ", num++);
 		else
 			fprintf(out, "%s ", TOKEN_I->token);
 	}
@@ -101,6 +109,9 @@ void print_stack(FILE* out, stack_t* stack, int n) {
 		} else if (TOKEN_I->type == HASH_TOKEN ) {
 			fprintf(out, "HASH_%d :", num_cp++);
 			print_stack( out, (stack_t*)TOKEN_I->token, num);
+		} else if (TOKEN_I->type == INIT_VAR_TOKEN ) {
+			fprintf(out, "INIT_%d :", num_cp++);
+			print_stack( out, (stack_t*)TOKEN_I->token, num);
 		}
 	#undef TOKEN_I
 }
@@ -119,7 +130,7 @@ static char* new_function(stack_t* head, stack_t* body, hash_t* functions){
 //TODO улучшить тексты ошибок
 	if( ((LEX_TOKEN*)(head->val[0]))->type != IDENT_TOKEN ) {
 		return "ERROR: function header must start with IDENT_TOKEN\n";
-	} else if(
+	} else if(	
 		  strcmp( ((LEX_TOKEN*)(head->val[1]))->token, "(") ||
 		  strcmp( ((LEX_TOKEN*)(st_peek(head)))->token, ")")  ) {
 		return "ERROR: second and last token must be brackets\n";
@@ -135,7 +146,6 @@ static char* new_function(stack_t* head, stack_t* body, hash_t* functions){
 	);
 	return NULL;
 }
-
 
 
 static int decrement_deep(FILE* out, stack_t* big_stack, stack_t* deep_stack, int* can_else, hash_t* functions){
@@ -179,6 +189,65 @@ static int decrement_deep(FILE* out, stack_t* big_stack, stack_t* deep_stack, in
 	return 1;
 }
 
+LEX_TOKEN* create_token(int type, int info, void* token){
+	LEX_TOKEN* tok = malloc(sizeof(LEX_TOKEN));
+	tok->type = type;
+	tok->info = info;
+	tok->token = (char*)token;
+	return tok;
+}
+
+static stack_t* genrate_var_init_stack(FILE* out, LEX_TOKEN* tokens, int len_str){
+	stack_t* init = stack_new();
+	LEX_TOKEN* tok = create_token(TRUE_BODY_TOKEN, 0, init);
+	int cond = 0;
+	/*	cond=0 => состояние считывания новой переменной
+		cond=1 => состояние считывания значения переменной
+	*/
+	while(len_str > 0) {		
+		if(!cond ) {
+			if(tokens->type != IDENT_TOKEN) {
+				fprintf(out, "ERROR: expected varname, get ");
+				print_token(tokens, out);
+				return NULL;
+			}
+			
+			st_push(init, create_token(IDENT_TOKEN, 0, tokens->token) );
+			tokens += 1; len_str--;
+			if(!len_str)  break;
+			
+			if(//если не операция или неподходящая операция
+				  tokens->type != OPERATION_TOKEN
+				||( strcmp(tokens->token, "=") && strcmp(tokens->token,",") )
+			) {
+				fprintf(out, "ERROR: expected ',' or '=', get ");
+				print_token(tokens, out);
+				return NULL;
+			}
+			
+			if( tokens->token[0] == '=' )
+				cond = 1;//перейти к считывания выражения
+
+			tokens += 1; len_str--;
+			if(!len_str) break;			
+		} else {
+
+
+			end_by_count_cnt = len_str;			
+			stack_t* generate_res = generate_stack(out, stack_new(), tokens, end_by_fat, 1);
+
+			if( !generate_res )
+					return NULL;
+			
+			st_push(init, create_token(LIST_EL_TOKEN, 0, generate_res) );
+			cond = 0;
+			tokens += len_str - end_by_count_cnt;
+			len_str = end_by_count_cnt;					
+		}
+	}
+	return init;	 
+}
+
 
 stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out, hash_t* functions){
 	LEX_TOKEN* tokens = all_token->tokens;
@@ -199,14 +268,19 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out, hash_t* functions){
 			int decrement_ok = decrement_deep(out, big_stack, deep_stack, &can_else, functions);
 			if(!decrement_ok) return NULL;
 		}
-		int deep_word_num;
-		if ( deep_word_num = deep_word(tokens->token) ) {
+	
+		if(tokens->type !=IDENT_TOKEN) {
+			printf("ERROR: every string must start with IDENT_TOKEN\n");
+			return NULL;
+		}
+		
+		if ( tokens->info && tokens->info <= CNT_DEEP_WORD ) {
 			if( tokens[cnt_line-1].type != OPERATION_TOKEN || tokens[cnt_line-1].token[0] != ':'){
 				//TODO printf -> fprintf
 				fprintf(out, "ERROR: Deep string must end with ':'\n");
 				return NULL;
 			} else { //deep string по обоим параметрам (deep word and ':')
-				if(deep_word_num == ELSE_ID ) {
+				if(tokens->info == ELSE_ID ) {
 					if( !can_else ) {
 						fprintf(out, "ERROR: expectedd 'if' before 'else' construction\n");
 						return NULL;
@@ -214,7 +288,7 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out, hash_t* functions){
 						fprintf(out, "ERROR: wrong 'else' construction\n");
 						return NULL;
 					}
-				} else if(deep_word_num == FUNCTION_ID ){
+				} else if(tokens->info == FUNCTION_ID ){
 					if( deep_stack->size != 0) { // NULL, а не sub NULL, т.к. push(sub) позже 
 						fprintf(out, "WARNING: I can`t work with deep_function\n");
 						return NULL;
@@ -227,14 +301,14 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out, hash_t* functions){
 				end_by_count_cnt = cnt_line-2;
 				stack_t* generate_res = generate_stack(
 					out, expr_stack, tokens+1, end_by_count,
-					deep_word_num != FUNCTION_ID//с хедером функции отдельный разговор
+					tokens->info != FUNCTION_ID//с хедером функции отдельный разговор
 				);
 				if( !generate_res )
 					return NULL;
 
 				LEX_TOKEN* expr_token = malloc(sizeof(LEX_TOKEN));
 				expr_token->type = EXPR_STACK_TOKEN;
-				expr_token->info = deep_word_num;
+				expr_token->info = tokens->info;
 				expr_token->token = (char*)expr_stack;
 
 				st_push( st_peek(big_stack), expr_token);
@@ -242,6 +316,10 @@ stack_t* build_AST(ALL_LEX_TOKENS* all_token, FILE* out, hash_t* functions){
 				
 
 			}
+		} else if ( tokens->info == VAR_ID ) {
+			stack_t* init_stack = genrate_var_init_stack(out, tokens+1, cnt_line-1);
+			//print_stack(out, init_stack, 0);
+			st_push( st_peek(big_stack), create_token(INIT_VAR_TOKEN, 0, init_stack));
 		} else {
 			end_by_count_cnt = cnt_line;
 			stack_t* generate_res = generate_stack(out, st_peek(big_stack), tokens, end_by_count, 1);

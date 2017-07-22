@@ -1,6 +1,20 @@
-i 2 5 ** = EXPR_0 T_BODY_1 while exit NULL
-EXPR_0 :i 0 > NULL
-T_BODY_1 :EXPR_2 T_BODY_3 F_BODY_4 if NULL
+i 0 = EXPR_0 T_BODY_1 while NULL
+EXPR_0 :i 10 < NULL
+T_BODY_1 :EXPR_2 T_BODY_3 F_BODY_4 if i 1 -= NULL
 EXPR_2 :i 2 % NULL
-T_BODY_3 :print i 2 ** NULL
-F_BODY_4 :c 7 = NULL
+T_BODY_3 :c CALL_5 = NULL
+CALL_5 :LIST_6 factorial NULL
+LIST_6 :ELEM_7 NULL
+ELEM_7 :i NULL
+F_BODY_4 :c i 2 ** = NULL
+FUNCTION: 
+	head: 
+factorial ( n ) NULL
+	body: 
+EXPR_0 T_BODY_1 if return n CALL_2 * NULL
+EXPR_0 :n 2 < NULL
+T_BODY_1 :return 1 NULL
+CALL_2 :LIST_3 factorial NULL
+LIST_3 :ELEM_4 NULL
+ELEM_4 :n 1 - NULL
+END

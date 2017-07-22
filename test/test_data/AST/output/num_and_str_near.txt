@@ -1,3 +1,3 @@
 ERROR: this tokens can`t be near:
-	INT_NUM_TOKEN: 4
-	STRING_TOKEN: 2: 
+	INT_NUM_TOKEN: 4, info => 0
+	STRING_TOKEN: 2: , info => 0

@@ -6,4 +6,5 @@
 #include "../stat_analyzer/stat_analyzer.h"
 
 int test();
+void write_tokens(FILE*, ALL_LEX_TOKENS*);
 #endif

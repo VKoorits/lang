@@ -41,7 +41,7 @@ void print_token(const LEX_TOKEN* tok, FILE* output_stream){
 		else if(tok->type == RESERVED_TOKEN)
 			token_type = "RESERVED_TOKEN";
 		else token_type = "\n\n\n\nSTRANGE_TOKEN_TYPE\n\n\n\n\a";
-		fprintf(output_stream, "%s: %s\n", token_type, tok->token);
+		fprintf(output_stream, "%s: %s, info => %d\n", token_type, tok->token, tok->info);
 	} else {
 		fprintf(output_stream, "NULL POINTER TO LEX_TOKEN\n");
 	}
@@ -54,7 +54,7 @@ void _add_token(){
 	if( len_token == 0 && token_type != STRING_TOKEN)
 		return;
 	token_str[len_token] = '\0';
-	
+
 	if(count_tokens == tokens_capacity){
 		tokens_capacity *= EXPANSION_NUM;//может быть изменить коэффициент/ввести доп условия
 		tokens = realloc(tokens, sizeof(LEX_TOKEN) * (tokens_capacity) );
@@ -65,16 +65,25 @@ void _add_token(){
 	//перенос накопленных данных
 	tokens[count_tokens].token = malloc(len_token+1);
 	strcpy( tokens[count_tokens].token, token_str);
-	if( token_type == IDENT_TOKEN  &&  is_char_operator(token_str) )
+
+		int char_op_priorety = is_char_operator(token_str);
+	if( token_type == IDENT_TOKEN  &&  char_op_priorety ) {//символьный оператор
 		token_type = OPERATION_TOKEN;
-	if( token_type == INT_NUM_TOKEN && count_point_in_num > 0 )
+		tokens[count_tokens].info = char_op_priorety;
+	} else if( token_type == INT_NUM_TOKEN && count_point_in_num > 0 )//число с точкой
 		token_type = FLOAT_NUM_TOKEN;
-	tokens[count_tokens].type = token_type;//_get_token_type(token_str, 0);// <=============-------идентификация токена
-	
-	if(token_type == OPERATION_TOKEN)
+	else if(token_type == OPERATION_TOKEN) // обычная операция
 		tokens[count_tokens].info = priorety;
-	else
-		tokens[count_tokens].info = 0;
+	else {
+		if( token_type == IDENT_TOKEN) {
+			//номер+1 ключевого слова в массиве key_words(syntax.c)
+			tokens[count_tokens].info = is_key_word(token_str);
+		} else
+			tokens[count_tokens].info = 0;
+	}
+	
+	tokens[count_tokens].type = token_type;
+	
 	count_tokens++;
 	len_token = 0;
 	numerator[this_line_pos]++;

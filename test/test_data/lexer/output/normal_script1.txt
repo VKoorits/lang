@@ -1,59 +1,59 @@
-IDENT_TOKEN: nums
-OPERATION_TOKEN: =
-OPERATION_TOKEN: [
-INT_NUM_TOKEN: 1
-OPERATION_TOKEN: ->
-INT_NUM_TOKEN: 60
-OPERATION_TOKEN: ]
+IDENT_TOKEN: nums, info => 0
+OPERATION_TOKEN: =, info => 1
+OPERATION_TOKEN: [, info => -1
+INT_NUM_TOKEN: 1, info => 0
+OPERATION_TOKEN: ->, info => -2
+INT_NUM_TOKEN: 60, info => 0
+OPERATION_TOKEN: ], info => -1
 #
-IDENT_TOKEN: for
-IDENT_TOKEN: i
-OPERATION_TOKEN: in
-IDENT_TOKEN: nums
-OPERATION_TOKEN: :
+IDENT_TOKEN: for, info => 0
+IDENT_TOKEN: i, info => 0
+OPERATION_TOKEN: in, info => 13
+IDENT_TOKEN: nums, info => 0
+OPERATION_TOKEN: :, info => -2
 #
-IDENT_TOKEN: for
-IDENT_TOKEN: j
-OPERATION_TOKEN: in
-IDENT_TOKEN: nums
-OPERATION_TOKEN: :
+IDENT_TOKEN: for, info => 0
+IDENT_TOKEN: j, info => 0
+OPERATION_TOKEN: in, info => 13
+IDENT_TOKEN: nums, info => 0
+OPERATION_TOKEN: :, info => -2
 #
-IDENT_TOKEN: if
-IDENT_TOKEN: random
-OPERATION_TOKEN: .
-IDENT_TOKEN: float
-OPERATION_TOKEN: (
-OPERATION_TOKEN: )
-OPERATION_TOKEN: >
-FLOAT_NUM_TOKEN: 0.5
-OPERATION_TOKEN: :
+IDENT_TOKEN: if, info => 1
+IDENT_TOKEN: random, info => 0
+OPERATION_TOKEN: ., info => 14
+IDENT_TOKEN: float, info => 0
+OPERATION_TOKEN: (, info => -1
+OPERATION_TOKEN: ), info => -1
+OPERATION_TOKEN: >, info => 7
+FLOAT_NUM_TOKEN: 0.5, info => 0
+OPERATION_TOKEN: :, info => -2
 #
-IDENT_TOKEN: swap
-IDENT_TOKEN: i
-OPERATION_TOKEN: ,
-IDENT_TOKEN: j
+IDENT_TOKEN: swap, info => 0
+IDENT_TOKEN: i, info => 0
+OPERATION_TOKEN: ,, info => -2
+IDENT_TOKEN: j, info => 0
 #
-IDENT_TOKEN: print
-IDENT_TOKEN: nums
+IDENT_TOKEN: print, info => 0
+IDENT_TOKEN: nums, info => 0
 #
-IDENT_TOKEN: _var1
-OPERATION_TOKEN: =
-STRING_TOKEN: say "cheese'
+IDENT_TOKEN: _var1, info => 0
+OPERATION_TOKEN: =, info => 1
+STRING_TOKEN: say "cheese', info => 0
 #
-IDENT_TOKEN: _var1
-OPERATION_TOKEN: =
-STRING_TOKEN: say "cheese'
+IDENT_TOKEN: _var1, info => 0
+OPERATION_TOKEN: =, info => 1
+STRING_TOKEN: say "cheese', info => 0
 #
-IDENT_TOKEN: _var1
-OPERATION_TOKEN: =
-STRING_TOKEN: say 'cheese"
+IDENT_TOKEN: _var1, info => 0
+OPERATION_TOKEN: =, info => 1
+STRING_TOKEN: say 'cheese", info => 0
 #
-IDENT_TOKEN: _var1
-OPERATION_TOKEN: =
-STRING_TOKEN: say 'cheese"
+IDENT_TOKEN: _var1, info => 0
+OPERATION_TOKEN: =, info => 1
+STRING_TOKEN: say 'cheese", info => 0
 #
-IDENT_TOKEN: _var2
-OPERATION_TOKEN: =
-FLOAT_NUM_TOKEN: 159267843.0000001
+IDENT_TOKEN: _var2, info => 0
+OPERATION_TOKEN: =, info => 1
+FLOAT_NUM_TOKEN: 159267843.0000001, info => 0
 #
 47

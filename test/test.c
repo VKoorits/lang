@@ -88,16 +88,22 @@ void test_AST_builder(char* filename, FILE* out){
 		stack_t* big_stack = build_AST(all_token, out, functions);
 		if(big_stack){
 			print_stack( out, big_stack, 0);
+			hash_each_val( functions, {
+				print_function(out, val);
+			});
 		}
 	}
 }
+
 void test_stat_analyze(char* filename, FILE* out) {
 	ALL_LEX_TOKENS* all_token = lex_analyze( filename, out);
 	if(all_token){
 		hash_t* functions = hash_new();
 		stack_t* big_stack = build_AST(all_token, out, functions);
 		if(big_stack){
-			big_stack = stat_analyze(out, big_stack, functions);
+			stack_t* analyze_res = stat_analyze(out, big_stack, functions);
+			if( analyze_res )
+				print_stack(out, analyze_res, 0);
 		}
 	}
 }
@@ -180,7 +186,8 @@ int test() {
 		"empty_element",
 		"wrong_hash_size",
 		"two_operations",
-		"num_and_str_near"
+		"num_and_str_near",
+		"init_var"
 	};
 	
 	printf("AST_TEST:\n");
@@ -189,9 +196,15 @@ int test() {
 		int res = fio_test("AST/", AST_filenames[i], test_AST_builder);
 		if(res == 1){ printf("OK\n"); ++cnt_test_ok; }
 	}
-	
+	for(int i = 0; i<40; i++) printf("="); printf("\n");
+
 	char* stat_analyze_filenames[] = {
-		"undeclared_function"
+		"undeclared_function",
+		"undeclared_function2",
+		"normal_var_script",
+		"no_var_declaration",
+		"other_namespace",
+		"no_var_from_prev_space"
 	};
 	printf("STAT_ANALYZE_TEST:\n");
 	for(int i = 0; i < sizeof(stat_analyze_filenames) / sizeof(char*); i++) {
@@ -199,6 +212,7 @@ int test() {
 		int res = fio_test("stat_analyze/", stat_analyze_filenames[i], test_stat_analyze);
 		if(res == 1){ printf("OK\n"); ++cnt_test_ok; }
 	}
+	for(int i = 0; i<40; i++) printf("="); printf("\n");
 
 
 	printf("\n");

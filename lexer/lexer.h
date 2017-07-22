@@ -5,6 +5,7 @@
 #include <malloc.h>
 #include <ctype.h>
 #include <string.h>
+#include "../syntax/syntax.h"
 
 //##############################
 #define COUNT_SPACE_IN_DEEP (4)
@@ -32,8 +33,9 @@
 #define ARRAY_TOKEN (14)
 #define HASH_TOKEN (15)
 	#define MAX_STACK_TOKEN (16)
-#define FUNC_CALL_TOKEN (17)
-#define UNKNOWN_TOKEN (18)
+#define INIT_VAR_TOKEN (17)
+#define FUNC_CALL_TOKEN (18)
+#define UNKNOWN_TOKEN (19)
 
 
 

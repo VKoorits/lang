@@ -21,10 +21,14 @@ int main(int argc, char* argv[]){
 		FILE* out = stderr;
 		ALL_LEX_TOKENS* all_token = lex_analyze("lang_code/file.l", out);
 		if(all_token){
+			//write_tokens(stdout, all_token);
 			hash_t* functions = hash_new();
 			stack_t* big_stack = build_AST(all_token, out, functions);	
 			if(big_stack) {
-				stat_analyze(out, big_stack, functions);
+				stack_t* analyze_res = stat_analyze(out, big_stack, functions);
+				if( analyze_res )
+					print_stack(stdout, analyze_res, 0);
+				//hash_each_val( functions, {print_function(out, val);});
 			}
 		}
 	}
