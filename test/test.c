@@ -108,6 +108,29 @@ void test_stat_analyze(char* filename, FILE* out) {
 	}
 }
 
+void test_compiler(char* filename, FILE* out) {
+	ALL_LEX_TOKENS* all_token = lex_analyze(filename, out);
+	if(all_token){
+		//write_tokens(stdout, all_token);
+		hash_t* functions = hash_new();
+		stack_t* big_stack = build_AST(all_token, out, functions);	
+		if(big_stack) {
+			stack_t* analyze_res = stat_analyze(out, big_stack, functions);
+			if( analyze_res ){
+				//добавляем символ 'c' в конце расширения файла
+				int name_len = strlen(filename);
+				char* filename_code = malloc(name_len + 2 );
+				strcpy(filename_code, filename);
+				filename_code[name_len] = 'c';
+				filename_code[name_len+1] = '\0';
+
+				compile(filename_code, out, analyze_res, functions);
+				write_op_codes(out, filename_code);
+			}
+		}
+	}
+}
+
 
 int fio_test(char* path, char* filename, void (*tested_func)(char*,FILE*) ) { 
 	/*
@@ -204,12 +227,24 @@ int test() {
 		"normal_var_script",
 		"no_var_declaration",
 		"other_namespace",
-		"no_var_from_prev_space"
+		"no_var_from_prev_space"		
 	};
 	printf("STAT_ANALYZE_TEST:\n");
 	for(int i = 0; i < sizeof(stat_analyze_filenames) / sizeof(char*); i++) {
 		printf("	TEST %25s: ", stat_analyze_filenames[i]);	
 		int res = fio_test("stat_analyze/", stat_analyze_filenames[i], test_stat_analyze);
+		if(res == 1){ printf("OK\n"); ++cnt_test_ok; }
+	}
+	for(int i = 0; i<40; i++) printf("="); printf("\n");
+	
+	
+	char* compiler_filenames[] = {
+		"simple_file"
+	};
+	printf("COMPILER_TEST:\n");
+	for(int i = 0; i < sizeof(compiler_filenames) / sizeof(char*); i++) {
+		printf("	TEST %25s: ", compiler_filenames[i]);	
+		int res = fio_test("compiler/", compiler_filenames[i], test_compiler);
 		if(res == 1){ printf("OK\n"); ++cnt_test_ok; }
 	}
 	for(int i = 0; i<40; i++) printf("="); printf("\n");
@@ -219,7 +254,8 @@ int test() {
 	int count_test = (
 		sizeof(lexer_filenames) + 
 		sizeof(AST_filenames) + 
-		sizeof(stat_analyze_filenames)
+		sizeof(stat_analyze_filenames) + 
+		sizeof(compiler_filenames)
 	)/sizeof(char*);
 	if( count_test == cnt_test_ok )
 		printf("All %d tests successfully passed :D\n", count_test);

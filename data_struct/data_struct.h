@@ -25,6 +25,12 @@ typedef struct vector_s {
 	int capacity;
 } vecctor_t;
 
+typedef struct var_s {
+	int type;
+	int cnt_ref;
+	void* val;
+} var_t;
+
 
 
 

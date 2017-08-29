@@ -1,0 +1,1 @@
+ERROR: lex_analyze can`t open file test/test_data/stat_analyze/input/popa.l

@@ -65,8 +65,9 @@
 
 
 typedef struct LEX_TOKEN {
-	short type;
-	short info;//для операций приоритет
+	char type;
+	char info;//для операций приоритет, для ключевого слова номер+1
+	char info_second;//для переменных это номер namespac-a из которого идет вызов
 	char* token;
 } LEX_TOKEN;
 
