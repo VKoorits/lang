@@ -1,7 +1,6 @@
 #include "compiler.h"
 #include "byte_codes.h"
 
-#define PBC if(0)
 
 
 stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* functions, int deep,
@@ -12,11 +11,15 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 	
 	int count_var_in_namespace = *var_count;
 	long int position_NEW;
+	int some_var = 666;//какая-то переменная
+	int after_true_body = -1;
+	
+	
 	
 	if(new_namespace) {
 		fwrite(&NEW_VAR, sizeof(char), 1, code);
 		position_NEW = ftell(code);		
-		fwrite(var_count, sizeof(int), 1, code);
+		fwrite(&some_var, sizeof(int), 1, code);
 	}
 	
 	for(int i=0; i < big_stack->size; i++){
@@ -39,12 +42,10 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 					--*var_count;
 					fwrite(var_count, sizeof(int), 1, code);
 					++*var_count;
-					PBC printf("PUSH %d\n", *var_count-1);
 					
 					compile_recursive(code, out, val, functions, deep+1, var_count, const_count, constants, var_id, const_id, 0);			
 					
 					fwrite(&STORE, sizeof(char), 1, code);
-					PBC printf("STORE\n");
 					
 					prev_type = LIST_EL_TOKEN;
 				}
@@ -53,25 +54,20 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 			int var_index = (int)hash_get(var_id, TOKEN_I->token);
 			fwrite(&PUSH, sizeof(char), 1, code);
 			fwrite(&var_index, sizeof(int), 1, code);
-			PBC printf("PUSH %d\t\t//var(%s)_id\n", (int)hash_get(var_id, TOKEN_I->token), TOKEN_I->token );
 		} else if ( TOKEN_I->type == OPERATION_TOKEN ) {
 			if( TOKEN_I->token[1] == '\0' ){
 				switch(TOKEN_I->token[0]) {
 					case '+':
 						fwrite(&BINARY_ADD, sizeof(char), 1, code);
-						PBC printf("BINARY_ADD\n"); 
 						break;
 					case '-': 
 						fwrite(&BINARY_SUB, sizeof(char), 1, code);
-						PBC printf("BINARY_SUB\n");
 						break;
 					case '=':
 						fwrite(&STORE, sizeof(char), 1, code);
-						PBC printf("STORE\n");
 						break;
 					default :
-						PBC printf("OPERATION\n") ;
-							break;					
+						break;					
 				}
 			}
 		} else if ( 
@@ -93,11 +89,36 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 			int const_num = (int)hash_get(const_id, unique_val );
 			fwrite(&PUSH_CONST, sizeof(char), 1, code);
 			fwrite(&const_num, sizeof(int), 1, code);
+		} else if (TOKEN_I->type == IDENT_TOKEN) {
+			//DANGER: может попасть не ключевое слово, а что-то другое(function_name)
+			switch(TOKEN_I->info) {
+				case IF_ID://все будет сделано в *_BODY_TOKEN
+				break;
+			}
+		} else if (TOKEN_I->type == EXPR_STACK_TOKEN ) {
+			compile_recursive(code, out, (stack_t*)TOKEN_I->token, functions, deep+1,
+							var_count, const_count, constants, var_id, const_id, 0);					
+		} else if (TOKEN_I->type == TRUE_BODY_TOKEN) {
+			fwrite(&JUMP_IF_NOT, 1, 1, code);
+			long int jump_from = ftell(code);
+			fwrite(&some_var, sizeof(int), 1, code);
 			
-			PBC printf("PUSH_CONST %d\t\t//const=%s\n", const_num, TOKEN_I->token );
+			compile_recursive(code, out, (stack_t*)TOKEN_I->token, functions, deep+1,
+							var_count, const_count, constants, var_id, const_id, 1);
+			
+			int jump_where = (int)ftell(code);
+			fseek(code, jump_from, SEEK_SET);
+			fwrite(&jump_where, sizeof(int), 1, code);
+			fseek(code, 0, SEEK_END);
+			
+			
+		} else {
+			printf("UNKNOWN_TOKEN_cmp %d\n", TOKEN_I->type);
 		}
 	#undef TOKEN_I
 	}
+	
+	
 	if(new_namespace) {
 		fwrite(&DELETE_VAR, sizeof(char), 1, code);
 		count_var_in_namespace = *var_count - count_var_in_namespace;
@@ -109,7 +130,6 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 		
 	}
 	
-	
 	return constants;
 }
 
@@ -117,8 +137,6 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 
 
 int compile(char* code_filename, FILE* out, stack_t* big_stack, hash_t* functions){
-	PBC printf("@@@@@@@@@@@@@@@@\n");
-	
 	FILE* code = fopen(code_filename, "wb+");
 		int var_count = 1, const_count = 1;
 		int offset_to_const = 0;
@@ -133,7 +151,6 @@ int compile(char* code_filename, FILE* out, stack_t* big_stack, hash_t* function
 		
 		//о структуре секции констант написанов compiler.h
 		fwrite(&(constants->size), sizeof(int), 1, code);
-		PBC printf("count_constant: %d\n", constants->size);
 		//сами константы
 		for(int i=0; i<constants->size; i++){			
 			LEX_TOKEN* tok = constants->val[i];	
@@ -142,8 +159,6 @@ int compile(char* code_filename, FILE* out, stack_t* big_stack, hash_t* function
 			fwrite(&tok->type,  sizeof(int), 1, code);
 			fwrite(&token_len, sizeof(int), 1, code);//длина строкового представления константы
 			fwrite(tok->token, sizeof(char), token_len, code);
-			
-			PBC printf("len: %d, tok: %s\n", token_len, tok->token);
 		}
 	fclose(code);
 	return 0;

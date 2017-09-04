@@ -59,7 +59,12 @@ void write_op_codes(FILE* output, char* filename) {
 			fread(&arg, sizeof(int), 1, code); 
 			  if( ftell(code) > offset_to_constant ) break;
 			fprintf(output, "%d:\tDELETE_VAR %d\n", cn, arg);
-		}   else  {
+		} else if ( byte == JUMP_IF_NOT) {
+			int arg;
+			fread(&arg, sizeof(int), 1, code); 
+			  if( ftell(code) > offset_to_constant ) break;
+			fprintf(output, "%d:\tJUMP_IF_NOT 0x%d\n", cn, arg);
+		} else  {
 			printf("UNKNOWN BYTE CODE %d\n", byte);
 			break;
 		}

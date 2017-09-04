@@ -9,11 +9,13 @@ static const char PUSH_CONST = 4;
 static const char STORE = 5;
 static const char BINARY_ADD = 6;
 static const char BINARY_SUB = 7;
-/*static const char MULTUPLY = 6;
-static const char DIVISION = 7;
-static const char MOD = 8;
-static const char INT_DIVISION = 9;
-static const char POWER = 10;*/
+	static const char MULTUPLY = 6;
+	static const char DIVISION = 7;
+	static const char MOD = 8;
+	static const char INT_DIVISION = 9;
+	static const char POWER = 10;
+static const char JUMP_IF_NOT = 11;
+
 
 
 
