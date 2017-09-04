@@ -15,7 +15,7 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 	
 	if(new_namespace) {
 		fwrite(&NEW_VAR, sizeof(char), 1, code);
-		long int position_NEW = ftell(code);
+		position_NEW = ftell(code);		
 		fwrite(var_count, sizeof(int), 1, code);
 	}
 	
@@ -98,18 +98,17 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 		}
 	#undef TOKEN_I
 	}
-	
 	if(new_namespace) {
 		fwrite(&DELETE_VAR, sizeof(char), 1, code);
 		count_var_in_namespace = *var_count - count_var_in_namespace;
 		fwrite(&count_var_in_namespace, sizeof(int), 1, code);
-		
-		int delta = ftell(code) - position_NEW;
-		fseek(code, -delta, SEEK_CUR);
+
+		fseek(code, position_NEW, SEEK_SET);
 		fwrite(&count_var_in_namespace, sizeof(int), 1, code);
-		fseek(code, delta, SEEK_CUR);
+		fseek(code, 0, SEEK_END);
 		
 	}
+	
 	
 	return constants;
 }
@@ -120,62 +119,33 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 int compile(char* code_filename, FILE* out, stack_t* big_stack, hash_t* functions){
 	PBC printf("@@@@@@@@@@@@@@@@\n");
 	
-	FILE* code = fopen("file.bc", "wb+");
+	FILE* code = fopen(code_filename, "wb+");
 		int var_count = 1, const_count = 1;
+		int offset_to_const = 0;
+		fwrite(&offset_to_const, sizeof(int), 1, code);//будет перезаписано
 		stack_t* constants = compile_recursive(code, out, big_stack, functions, 0, &var_count, &const_count, NULL, NULL, NULL, 1);	
+		offset_to_const = (int)ftell(code);
 		
-		long int without_constant_size = ftell(code);
-		fseek(code, 0, SEEK_SET);
 				
-		//копируем в память сгенерированный байт-код
-		//TODO: копирование файла
-		void* byte_code = malloc( without_constant_size );
-		fread(byte_code, without_constant_size, 1, code);
-	fclose(code);
+		fseek(code, 0, SEEK_SET);
+		fwrite(&offset_to_const, sizeof(int), 1, code);
+		fseek(code, offset_to_const, SEEK_SET);
 		
-	FILE* all_code = fopen(code_filename, "wb+");
 		//о структуре секции констант написанов compiler.h
-		int offset_to_code = 0;
-		fwrite(&offset_to_code, sizeof(int), 1, all_code);
-		fwrite(&(constants->size), sizeof(int), 1, all_code);
+		fwrite(&(constants->size), sizeof(int), 1, code);
 		PBC printf("count_constant: %d\n", constants->size);
-		
 		//сами константы
 		for(int i=0; i<constants->size; i++){			
 			LEX_TOKEN* tok = constants->val[i];	
 			int token_len = strlen(tok->token);
 			
-			fwrite(&tok->type,  sizeof(int), 1, all_code);
-			fwrite(&token_len, sizeof(int), 1, all_code);//длина строкового представления константы
-			fwrite(tok->token, sizeof(char), token_len, all_code);
+			fwrite(&tok->type,  sizeof(int), 1, code);
+			fwrite(&token_len, sizeof(int), 1, code);//длина строкового представления константы
+			fwrite(tok->token, sizeof(char), token_len, code);
 			
 			PBC printf("len: %d, tok: %s\n", token_len, tok->token);
 		}
-		offset_to_code = ftell(all_code);
-			
-		//дозаписываем байт-код
-		//TODO копирование файла
-		fwrite(byte_code, without_constant_size, 1, all_code);
-		
-		fseek(all_code, 0, SEEK_SET);
-		fwrite(&offset_to_code, sizeof(int), 1, all_code);
-
-		PBC {
-			fseek(all_code, 0, SEEK_END);
-			without_constant_size = ftell(all_code);
-			fseek(all_code, 0, SEEK_SET);
-			free(byte_code);
-			byte_code = malloc( without_constant_size );
-			fread(byte_code, without_constant_size, 1, all_code);
-			for(int i=0; i < without_constant_size; i++){
-				char ch = *((char*)byte_code + i);
-				printf("%c ", ch );
-			}
-			printf("\nEND\n");
-		}
-		free(byte_code);
-	fclose(all_code);
-	remove("file.bc");
+	fclose(code);
 	return 0;
 }
 

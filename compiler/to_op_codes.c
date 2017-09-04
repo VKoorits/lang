@@ -4,8 +4,10 @@
 
 void write_op_codes(FILE* output, char* filename) {
 	FILE* code = fopen(filename, "rb");
-	int offset_to_code, count_const;
-	fread(&offset_to_code, sizeof(int), 1, code);
+	int offset_to_constant, count_const;
+	fread(&offset_to_constant, sizeof(int), 1, code);
+		
+	fseek(code, offset_to_constant, SEEK_SET);
 	fread(&count_const, sizeof(int), 1, code);
 	
 	fprintf(output, "CONSTANTS:\n");
@@ -21,21 +23,25 @@ void write_op_codes(FILE* output, char* filename) {
 		
 	}
 	
+	fseek(code, sizeof(int), SEEK_SET);
+	
 	fprintf(output, "CODE:\n");
 	int cn = 0;//command_number
 	while(1){
 		++cn;
 		char byte;
-		fread(&byte, sizeof(char), 1, code);
-		if( feof(code) ) break;
+		if( ftell(code) > offset_to_constant ) break;
+		fread(&byte, sizeof(char), 1, code);	
 		
 		if( byte == PUSH ) {
 			int arg;
-			fread(&arg, sizeof(int), 1, code); if( feof(code) ) break;
+			fread(&arg, sizeof(int), 1, code); 
+			  if( ftell(code) > offset_to_constant ) break;
 			fprintf(output, "%d:\tPUSH %d\n", cn, arg);
 		} else if ( byte == PUSH_CONST ) {
 			int arg;
-			fread(&arg, sizeof(int), 1, code); if( feof(code) ) break;
+			fread(&arg, sizeof(int), 1, code); 
+			  if( ftell(code) > offset_to_constant ) break;
 			fprintf(output, "%d:\tPUSH_CONST %d\n", cn, arg);
 		} else if ( byte == STORE ) {
 			fprintf(output, "%d:\tSTORE\n", cn);
@@ -45,13 +51,18 @@ void write_op_codes(FILE* output, char* filename) {
 			fprintf(output, "%d:\tBINARY_SUB\n", cn);
 		} else if ( byte == NEW_VAR ) {
 			int arg;
-			fread(&arg, sizeof(int), 1, code); if( feof(code) ) break;
+			fread(&arg, sizeof(int), 1, code);
+			  if( ftell(code) > offset_to_constant ) break;
 			fprintf(output, "%d:\tNEW_VAR %d\n", cn, arg);
 		} else if ( byte == DELETE_VAR ) {
 			int arg;
-			fread(&arg, sizeof(int), 1, code); if( feof(code) ) break;
+			fread(&arg, sizeof(int), 1, code); 
+			  if( ftell(code) > offset_to_constant ) break;
 			fprintf(output, "%d:\tDELETE_VAR %d\n", cn, arg);
-		}   else break;
+		}   else  {
+			printf("UNKNOWN BYTE CODE %d\n", byte);
+			break;
+		}
 	};
 	
 }
