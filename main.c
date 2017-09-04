@@ -15,6 +15,7 @@ int create_prog(FILE* out, char* filename) {
 		stack_t* big_stack = build_AST(all_token, out, functions);	
 		if(big_stack) {
 			stack_t* analyze_res = stat_analyze(out, big_stack, functions);
+			//print_stack(stdout, analyze_res, 0);
 			if( analyze_res ){
 				int name_len = strlen(filename);
 				char* filename_code = malloc(name_len + 2 );

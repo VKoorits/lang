@@ -7,6 +7,9 @@
 #include <string.h>
 #include "../syntax/syntax.h"
 
+#define COMPILED_FUNCTION (1)
+#define USER_FUNCTION (2)
+
 //##############################
 #define COUNT_SPACE_IN_DEEP (4)
 //##############################

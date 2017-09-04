@@ -7,13 +7,16 @@ TODO проверить на существование все переменн�
 
 */
 
-stack_t* stat_analyze_recursive(FILE* out, stack_t* big_stack, hash_t* functions, stack_t* namespace) {	
+stack_t* stat_analyze_recursive(FILE* out, stack_t* big_stack, hash_t* functions, stack_t* namespace, hash_t* std_functions) {	
 	for(int i=0; i < big_stack->size; i++){
 	#define TOKEN_I ((LEX_TOKEN*)big_stack->val[i])
 		if( TOKEN_I->type == FUNC_CALL_TOKEN ){//проверка наличия вызываемой функции
 			char* sub_name = ((LEX_TOKEN*)(((stack_t*)(TOKEN_I->token))->val[1]))->token;
-
-			if( !hash_get(functions, sub_name) ){
+			if( hash_get(functions, sub_name) ) {
+				TOKEN_I->info = USER_FUNCTION;
+			} else if ( hash_get(std_functions, sub_name) ) {
+				TOKEN_I->info = COMPILED_FUNCTION;
+			} else {
 				fprintf(out, "ERROR: undeclared function '%s'\n", sub_name );
 				return NULL;
 			}
@@ -26,7 +29,7 @@ stack_t* stat_analyze_recursive(FILE* out, stack_t* big_stack, hash_t* functions
 				st_push(namespace, hash_new() );
 			
 			stack_t* recursive_stack = (stack_t*)(TOKEN_I->token);			
-			stack_t* res = stat_analyze_recursive(out, recursive_stack, functions, namespace);
+			stack_t* res = stat_analyze_recursive(out, recursive_stack, functions, namespace, std_functions);
 			if( !res ) return NULL;
 			//выходим из блока кода
 			if(TOKEN_I->type == TRUE_BODY_TOKEN || TOKEN_I->type == FALSE_BODY_TOKEN)
@@ -47,7 +50,7 @@ stack_t* stat_analyze_recursive(FILE* out, stack_t* big_stack, hash_t* functions
 				} else {
 					stack_t* recursive_stack = (stack_t*)(((LEX_TOKEN*)(((stack_t*)(TOKEN_I->token))->val[j]))->token);
 
-					stack_t* res = stat_analyze_recursive(out, recursive_stack, functions, namespace);
+					stack_t* res = stat_analyze_recursive(out, recursive_stack, functions, namespace, std_functions);
 					if( !res ) return NULL;
 				}
 			}
@@ -74,15 +77,27 @@ stack_t* stat_analyze_recursive(FILE* out, stack_t* big_stack, hash_t* functions
 	return big_stack;
 }
 
+char* std_functions_lst[] = {};
+static hash_t* make_std_function_hash() {
+	hash_t* std = hash_new();
+	int F = 1;
+	for(int i = 0; i < sizeof(std_functions_lst)/sizeof(char*); i++) {
+		hash_set(std, std_functions_lst[i], (void*)(i+1));
+	}
+	
+	return std;
+}
 
 stack_t* stat_analyze(FILE* out, stack_t* big_stack, hash_t* functions) {
 		stack_t* namespace = stack_new();
 		st_push(namespace, hash_new());
-		if( !stat_analyze_recursive(out, big_stack, functions, namespace) )
+		hash_t* std_func = make_std_function_hash();
+		
+		if( !stat_analyze_recursive(out, big_stack, functions, namespace, std_func) )
 			return NULL;
 			
 		hash_each_val( functions, {
-			if( !stat_analyze_recursive(out, &(((function_t*)val)->body), functions, namespace))
+			if( !stat_analyze_recursive(out, &(((function_t*)val)->body), functions, namespace, std_func))
 				return NULL;
 		});
 		return big_stack;

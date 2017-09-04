@@ -12,8 +12,14 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 	int count_var_in_namespace = *var_count;
 	long int position_NEW;
 	int some_var = 666;//какая-то переменная
-	int after_true_body = -1;
+//#############################################
+	//goto var
+	//нет возможности вкладывадь блоки друг в друга ??????
+	int begin_expr = 0;//первая команда условия
+	int begin_true_body = 0;//первая команда true_body
+	int end_true_body = 0;//первая команда после true_body
 	
+//##################################################333
 	
 	
 	if(new_namespace) {
@@ -63,6 +69,21 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 					case '-': 
 						fwrite(&BINARY_SUB, sizeof(char), 1, code);
 						break;
+					case '*':
+						fwrite(&MULTIPLY, sizeof(char), 1, code);
+						break;
+					case '/':
+						fwrite(&DIVISION, sizeof(char), 1, code);
+						break;
+					case '%':
+						fwrite(&MOD, sizeof(char), 1, code);
+						break;
+					case '<':
+						fwrite(&LESS, sizeof(char), 1, code);
+						break;
+					case '>':
+						fwrite(&MORE, sizeof(char), 1, code);
+						break;
 					case '=':
 						fwrite(&STORE, sizeof(char), 1, code);
 						break;
@@ -82,8 +103,6 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 				hash_set(const_id, unique_val, (void*)*const_count );
 				//переменные, значения которых известны сразу BEGIN
 				st_push(constants, TOKEN_I);
-				//st_push(constants, (void*)*const_count );
-				//END
 				++*const_count;
 			}
 			int const_num = (int)hash_get(const_id, unique_val );
@@ -92,13 +111,28 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 		} else if (TOKEN_I->type == IDENT_TOKEN) {
 			//DANGER: может попасть не ключевое слово, а что-то другое(function_name)
 			switch(TOKEN_I->info) {
-				case IF_ID://все будет сделано в *_BODY_TOKEN
-				break;
+				case IF_ID:
+					fseek(code, begin_true_body+1, SEEK_SET);// (+1) для записи JUMP_IF_NOT
+					fwrite(&end_true_body, sizeof(int), 1, code);
+					fseek(code, 0, SEEK_END);
+				  break;
+				case WHILE_ID:
+					fwrite(&GOTO, 1, 1, code);
+					fwrite(&begin_expr, sizeof(int), 1, code);
+					end_true_body += 1 + sizeof(int);
+					
+					fseek(code, begin_true_body+1, SEEK_SET);// (+1) для записи JUMP_IF_NOT
+					fwrite(&end_true_body, sizeof(int), 1, code);
+					fseek(code, 0, SEEK_END);
+				  break;
 			}
 		} else if (TOKEN_I->type == EXPR_STACK_TOKEN ) {
+			begin_expr = (int)ftell(code);
 			compile_recursive(code, out, (stack_t*)TOKEN_I->token, functions, deep+1,
 							var_count, const_count, constants, var_id, const_id, 0);					
 		} else if (TOKEN_I->type == TRUE_BODY_TOKEN) {
+			begin_true_body  = (int)ftell(code);
+
 			fwrite(&JUMP_IF_NOT, 1, 1, code);
 			long int jump_from = ftell(code);
 			fwrite(&some_var, sizeof(int), 1, code);
@@ -106,12 +140,26 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 			compile_recursive(code, out, (stack_t*)TOKEN_I->token, functions, deep+1,
 							var_count, const_count, constants, var_id, const_id, 1);
 			
-			int jump_where = (int)ftell(code);
-			fseek(code, jump_from, SEEK_SET);
-			fwrite(&jump_where, sizeof(int), 1, code);
+			end_true_body = (int)ftell(code);		
+		} else if (TOKEN_I->type == FALSE_BODY_TOKEN) {
+			fwrite(&GOTO, 1, 1, code);
+			fwrite(&some_var, sizeof(int), 1, code);//переход к первой инструкции находящейся после FALSE_BODY
+			
+			
+			compile_recursive(code, out, (stack_t*)TOKEN_I->token, functions, deep+1,
+							var_count, const_count, constants, var_id, const_id, 1);
+			
+			int after_else = (int)ftell(code);
+			fseek(code, end_true_body+1, SEEK_SET);//(+1) так как sizeof(GOTO) = 1
+			fwrite(&after_else, sizeof(int), 1, code);
 			fseek(code, 0, SEEK_END);
 			
+			end_true_body += 1 + sizeof(int);// GOTO + $arg
 			
+		} else if (TOKEN_I->type == FUNC_CALL_TOKEN ) {
+			if( TOKEN_I->info == COMPILED_FUNCTION ) {
+				
+			}
 		} else {
 			printf("UNKNOWN_TOKEN_cmp %d\n", TOKEN_I->type);
 		}
@@ -128,6 +176,10 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 		fwrite(&count_var_in_namespace, sizeof(int), 1, code);
 		fseek(code, 0, SEEK_END);
 		
+	}
+	
+	if(deep == 0) {
+		fwrite(&EXIT, 1, 1, code);
 	}
 	
 	return constants;

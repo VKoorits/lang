@@ -30,18 +30,18 @@ void write_op_codes(FILE* output, char* filename) {
 	while(1){
 		++cn;
 		char byte;
-		if( ftell(code) > offset_to_constant ) break;
+		if( feof(code) ) break;
 		fread(&byte, sizeof(char), 1, code);	
 		
 		if( byte == PUSH ) {
 			int arg;
 			fread(&arg, sizeof(int), 1, code); 
-			  if( ftell(code) > offset_to_constant ) break;
+			  if( feof(code) ) break;
 			fprintf(output, "%d:\tPUSH %d\n", cn, arg);
 		} else if ( byte == PUSH_CONST ) {
 			int arg;
 			fread(&arg, sizeof(int), 1, code); 
-			  if( ftell(code) > offset_to_constant ) break;
+			  if( feof(code) ) break;
 			fprintf(output, "%d:\tPUSH_CONST %d\n", cn, arg);
 		} else if ( byte == STORE ) {
 			fprintf(output, "%d:\tSTORE\n", cn);
@@ -49,21 +49,39 @@ void write_op_codes(FILE* output, char* filename) {
 			fprintf(output, "%d:\tBINARY_ADD\n", cn);
 		} else if ( byte == BINARY_SUB) {
 			fprintf(output, "%d:\tBINARY_SUB\n", cn);
+		} else if ( byte == MULTIPLY ) {
+			fprintf(output, "%d:\tMULTIPLY\n", cn);
+		} else if ( byte == DIVISION) {
+			fprintf(output, "%d:\tDIVISION\n", cn);
+		} else if ( byte == MOD) {
+			fprintf(output, "%d:\tMOD\n", cn);
+		} else if ( byte == LESS) {
+			fprintf(output, "%d:\tLESS\n", cn);
+		} else if ( byte == MORE) {
+			fprintf(output, "%d:\tMORE\n", cn);
+		} else if ( byte == EXIT) {
+			fprintf(output, "%d:\tEXIT\n", cn);
+			break;
 		} else if ( byte == NEW_VAR ) {
 			int arg;
 			fread(&arg, sizeof(int), 1, code);
-			  if( ftell(code) > offset_to_constant ) break;
+			  if( feof(code) ) break;
 			fprintf(output, "%d:\tNEW_VAR %d\n", cn, arg);
 		} else if ( byte == DELETE_VAR ) {
 			int arg;
 			fread(&arg, sizeof(int), 1, code); 
-			  if( ftell(code) > offset_to_constant ) break;
+			  if( feof(code) ) break;
 			fprintf(output, "%d:\tDELETE_VAR %d\n", cn, arg);
 		} else if ( byte == JUMP_IF_NOT) {
 			int arg;
 			fread(&arg, sizeof(int), 1, code); 
-			  if( ftell(code) > offset_to_constant ) break;
+			  if( feof(code) ) break;
 			fprintf(output, "%d:\tJUMP_IF_NOT 0x%d\n", cn, arg);
+		} else if( byte == GOTO ) {
+			int arg;
+			fread(&arg, sizeof(int), 1, code); 
+			  if( feof(code) ) break;
+			fprintf(output, "%d:\tGOTO 0x%d\n", cn, arg);
 		} else  {
 			printf("UNKNOWN BYTE CODE %d\n", byte);
 			break;

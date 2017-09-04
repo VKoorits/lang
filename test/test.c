@@ -126,6 +126,7 @@ void test_compiler(char* filename, FILE* out) {
 
 				compile(filename_code, out, analyze_res, functions);
 				write_op_codes(out, filename_code);
+				remove(filename_code);
 			}
 		}
 	}
@@ -239,7 +240,11 @@ int test() {
 	
 	
 	char* compiler_filenames[] = {
-		"simple_file"
+		"simple_file",
+		"if_block",
+		"while_block",
+		"else_block",
+		"multy_block"
 	};
 	printf("COMPILER_TEST:\n");
 	for(int i = 0; i < sizeof(compiler_filenames) / sizeof(char*); i++) {
