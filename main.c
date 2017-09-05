@@ -6,6 +6,7 @@
 #include "AST/AST.h"
 #include "stat_analyzer/stat_analyzer.h"
 #include "compiler/compiler.h"
+#include "interpretator/interpretator.h"
 
 int create_prog(FILE* out, char* filename) {
 	ALL_LEX_TOKENS* all_token = lex_analyze(filename, out);
@@ -40,6 +41,12 @@ int main(int argc, char* argv[]){
 				fprintf(out, "ERROR: no file for decompile\n");
 			else{
 				write_op_codes(stdout, argv[2]);
+			}
+		} else if( !strcmp( argv[1], "-do") ) {
+			if(argc <= 2)
+				fprintf(out, "ERROR: no file for interpretation\n");
+			else{
+				run_byte_code(out, argv[2]);
 			}
 		} else {
 			create_prog(out, argv[1]);
