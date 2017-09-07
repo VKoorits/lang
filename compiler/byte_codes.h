@@ -2,23 +2,46 @@
 #define _BYTE_CODES_H_
 //OP_CODES
 
-static const char EXIT = 0;
-static const char NEW_VAR = 1;
-static const char DELETE_VAR = 2;
-static const char PUSH = 3;
-static const char PUSH_CONST = 4;
-static const char STORE = 5;
-static const char BINARY_ADD = 6;
-static const char BINARY_SUB = 7;
-static const char MULTIPLY = 8;
-static const char DIVISION = 9;
-static const char MOD = 10;
-static const char INT_DIVISION = 11;
-static const char POWER = 12;
-static const char LESS = 13;
-static const char MORE = 14;
-static const char JUMP_IF_NOT = 15;
-static const char GOTO = 16;
+
+#define _EXIT (0)
+#define _NEW_VAR (1)
+#define _DELETE_VAR (2)
+#define _PUSH (3)
+#define _PUSH_CONST (4)
+#define _STORE (5)
+#define _BINARY_ADD (6)
+#define _BINARY_SUB (7)
+#define _MULTIPLY (8)
+#define _DIVISION (9)
+#define _MOD (10)
+#define _INT_DIVISION (11)
+#define _POWER (12)
+#define _LESS (13)
+#define _MORE (14)
+#define _JUMP_IF_NOT (15)
+#define _GOTO (17)
+#define _CALL_STD (18)
+
+
+static const char EXIT = _EXIT;
+static const char NEW_VAR = _NEW_VAR;
+static const char DELETE_VAR = _DELETE_VAR;
+static const char PUSH = _PUSH;
+static const char PUSH_CONST = _PUSH_CONST;
+static const char STORE = _STORE;
+static const char BINARY_ADD = _BINARY_ADD;
+static const char BINARY_SUB = _BINARY_SUB;
+static const char MULTIPLY = _MULTIPLY;
+static const char DIVISION = _DIVISION;
+static const char MOD = _MOD;
+static const char INT_DIVISION = _INT_DIVISION;
+static const char POWER = _POWER;
+static const char LESS = _LESS;
+static const char MORE = _MORE;
+static const char JUMP_IF_NOT = _JUMP_IF_NOT;
+static const char GOTO = _GOTO;
+static const char CALL_STD = _CALL_STD;
+
 
 
 

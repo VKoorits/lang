@@ -6,6 +6,8 @@ TODO продумать устройство переменных
 TODO проверить на существование все переменные
 
 */
+extern hash_t* std_func;
+
 
 stack_t* stat_analyze_recursive(FILE* out, stack_t* big_stack, hash_t* functions, stack_t* namespace, hash_t* std_functions) {	
 	for(int i=0; i < big_stack->size; i++){
@@ -15,7 +17,7 @@ stack_t* stat_analyze_recursive(FILE* out, stack_t* big_stack, hash_t* functions
 			if( hash_get(functions, sub_name) ) {
 				TOKEN_I->info = USER_FUNCTION;
 			} else if ( hash_get(std_functions, sub_name) ) {
-				TOKEN_I->info = COMPILED_FUNCTION;
+				TOKEN_I->info = STD_FUNCTION;
 			} else {
 				fprintf(out, "ERROR: undeclared function '%s'\n", sub_name );
 				return NULL;
@@ -77,11 +79,11 @@ stack_t* stat_analyze_recursive(FILE* out, stack_t* big_stack, hash_t* functions
 	return big_stack;
 }
 
-char* std_functions_lst[] = {};
-static hash_t* make_std_function_hash() {
+extern char* std_functions_lst[];
+hash_t* make_std_function_hash() {
 	hash_t* std = hash_new();
 	int F = 1;
-	for(int i = 0; i < sizeof(std_functions_lst)/sizeof(char*); i++) {
+	for(int i = 0; i < COUNT_STD_FUNCTION; i++) {
 		hash_set(std, std_functions_lst[i], (void*)(i+1));
 	}
 	
@@ -91,7 +93,6 @@ static hash_t* make_std_function_hash() {
 stack_t* stat_analyze(FILE* out, stack_t* big_stack, hash_t* functions) {
 		stack_t* namespace = stack_new();
 		st_push(namespace, hash_new());
-		hash_t* std_func = make_std_function_hash();
 		
 		if( !stat_analyze_recursive(out, big_stack, functions, namespace, std_func) )
 			return NULL;
@@ -100,6 +101,7 @@ stack_t* stat_analyze(FILE* out, stack_t* big_stack, hash_t* functions) {
 			if( !stat_analyze_recursive(out, &(((function_t*)val)->body), functions, namespace, std_func))
 				return NULL;
 		});
+		
 		return big_stack;
 }
 

@@ -5,8 +5,10 @@
 #include "../lexer/lexer.h"
 #include "../AST/AST.h"
 #include "../data_struct/data_struct.h"
+#include "../std/std.h"
 
 stack_t* stat_analyze(FILE*, stack_t*, hash_t*);
+hash_t* make_std_function_hash();
 
 
 

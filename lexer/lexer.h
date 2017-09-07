@@ -7,7 +7,7 @@
 #include <string.h>
 #include "../syntax/syntax.h"
 
-#define COMPILED_FUNCTION (1)
+#define STD_FUNCTION (1)
 #define USER_FUNCTION (2)
 
 //##############################

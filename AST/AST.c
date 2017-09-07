@@ -173,7 +173,6 @@ static int decrement_deep(FILE* out, stack_t* big_stack, stack_t* deep_stack, in
 		
 		st_push( st_peek(big_stack), false_body );
 		st_push( st_peek(big_stack), if_token );
-	//TODO убрать символьную константу 'sub'				
 	} else if( !strcmp(tok->token, "sub") ) {
 		char* new_function_error = new_function(
 					(stack_t*)( (LEX_TOKEN*)st_pop( st_peek(big_stack) ) )->token,

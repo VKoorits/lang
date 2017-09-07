@@ -82,6 +82,11 @@ void write_op_codes(FILE* output, char* filename) {
 			fread(&arg, sizeof(int), 1, code); 
 			  if( feof(code) ) break;
 			fprintf(output, "%d:\tGOTO 0x%d\n", cn, arg);
+		} else if ( byte == CALL_STD ) {
+			int arg1, arg2;
+			fread(&arg1, sizeof(int), 1, code);
+			fread(&arg2, sizeof(int), 1, code);
+			fprintf(output, "%d:\tCALL_STD %d with %d args\n", cn, arg1, arg2);
 		} else  {
 			printf("UNKNOWN BYTE CODE %d\n", byte);
 			break;

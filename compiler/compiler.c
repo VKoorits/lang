@@ -1,6 +1,10 @@
 #include "compiler.h"
 #include "byte_codes.h"
 
+// GLOBAL VAR ###################
+extern hash_t* std_func;
+//###############################
+
 
 
 stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* functions, int deep,
@@ -157,11 +161,30 @@ stack_t* compile_recursive(FILE* code, FILE* out, stack_t* big_stack, hash_t* fu
 			end_true_body += 1 + sizeof(int);// GOTO + $arg
 			
 		} else if (TOKEN_I->type == FUNC_CALL_TOKEN ) {
-			if( TOKEN_I->info == COMPILED_FUNCTION ) {
+			stack_t* list_arg = (stack_t*)((LEX_TOKEN*)(((stack_t*)(TOKEN_I->token))->val[0]))->token;
+			for(int i=0; i<list_arg->size; i++) {
+				//заносим аргументы функции на стек
+				stack_t* elem = (stack_t*)(((LEX_TOKEN*)list_arg->val[i])->token);
+				compile_recursive(code, out, elem, functions, deep+1,
+							var_count, const_count, constants, var_id, const_id, 0);
 				
 			}
+			 
+			
+			
+			int sub_index = -1;
+			
+			if( TOKEN_I->info == STD_FUNCTION ) {
+				char* sub_name = ((LEX_TOKEN*)(((stack_t*)(TOKEN_I->token))->val[1]))->token;
+				sub_index = (int)hash_get(std_func, sub_name) - 1;
+			}
+			
+			fwrite(&CALL_STD, 1, 1, code);
+			fwrite(&sub_index, sizeof(int), 1, code);
+			fwrite(&list_arg->size, sizeof(int), 1, code);	
+			
 		} else {
-			printf("UNKNOWN_TOKEN_cmp %d\n", TOKEN_I->type);
+			printf("UNKNOWN_TOKEN in compiler %d\n", TOKEN_I->type);
 		}
 	#undef TOKEN_I
 	}
@@ -193,7 +216,7 @@ int compile(char* code_filename, FILE* out, stack_t* big_stack, hash_t* function
 		int var_count = 1, const_count = 1;
 		int offset_to_const = 0;
 		fwrite(&offset_to_const, sizeof(int), 1, code);//будет перезаписано
-		stack_t* constants = compile_recursive(code, out, big_stack, functions, 0, &var_count, &const_count, NULL, NULL, NULL, 1);	
+		stack_t* constants = compile_recursive(code, out, big_stack, functions, 0, &var_count, &const_count, NULL, NULL, NULL, 1);
 		offset_to_const = (int)ftell(code);
 		
 				

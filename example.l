@@ -1,6 +1,12 @@
-var a = 3.14
-while a < 10:
-	if a % 2:
-		a = a - 1
-	else:
-		a = a + 3
+var fib_sum
+var fib1 = 1, fib2 = 1
+
+var n = 45
+
+var i = 2
+while i < n:
+	fib_sum = fib1 + fib2
+	fib1 = fib2
+	fib2 = fib_sum
+	i = i + 1
+print(fib_sum)
