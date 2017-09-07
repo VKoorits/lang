@@ -40,35 +40,40 @@ static var_t* read_const_from_byte_code(FILE* out, char* const code_begin, unsig
 		constants = calloc(sizeof(var_t), *count_const);
 		for(int i=0; i<*count_const; i++) {
 			constants[i].type = GET_INT;
-			int const_len = GET_INT;
-			
-			constants[i].val = malloc(const_len+1);
-			strncpy(constants[i].val, code, const_len);
+			int const_len = GET_INT;			
+						
+			char* constant = malloc(const_len+1);
+			strncpy(constant, code, const_len);
 			code += const_len;
-			((char*)constants[i].val)[const_len] = '\0';
+			constant[const_len] = '\0';
 			
-			void* old_val = constants[i].val;
 			//TODO! это должно делаться на этапе компиляции
 			switch(constants[i].type) {
 				case INT_NUM_TOKEN:
-					constants[i].val = (void*)atoi(old_val);
-					free(old_val);
+					mark();
+					constants[i].val = (void*)atoi(constant);
 				  break;
 				case FLOAT_NUM_TOKEN:
 					constants[i].val = malloc(sizeof(double));
-					(*(double*)constants[i].val) = atof(old_val);
-					free(old_val);
-			}
-		}		
+					(*(double*)constants[i].val) = atof(constant);
+				  break;
+				case STRING_TYPE:
+					constants[i].val = string_make(constant, const_len+1);
+				  break;
+				default:
+					printf("DEFAULT %d\n", constants[i].type);
+				  break;
+			}			
+		}
+		
+				
 	}
 	
 	return constants;
 }
 
 static int interpretate(FILE* out, char* const code_begin, unsigned int size_code) {
-
 	constants = read_const_from_byte_code(out, code_begin, size_code, &const_count);	
-
 	var_stack = calloc(sizeof(var_t), STARTED_COUNT_VAR_IN_MAIN_STACK);
 	var_stack_size = 0;
 	var_stack_capacity = STARTED_COUNT_VAR_IN_MAIN_STACK;
@@ -78,11 +83,11 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 	
 	
 	char* code = code_begin + 4;
-	
+
 	char byte;
 	int arg;
 	int i;
-	
+		//mark();
 	int run_programm = 1;
 	while(run_programm) {
 		byte = GET_BYTE;
@@ -138,8 +143,8 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 						*(double*)where->val = *(double*)from->val;
 					  break;
 					case STRING_TYPE:
-						printf("TODO: do sting data_struct!!!\n");
-					  BREAK;
+						where->val = string_copy((string_t*)from->val);
+					  break;
 					default:
 						printf("UNDEFINED VAR_TYPE in STORE line:%d\n", __LINE__);
 					  BREAK;
@@ -175,8 +180,8 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 					  break;
 					}
 					case STRING_TYPE: {
-						printf("TODO: do sting data_struct!!!\n");
-					  BREAK;
+						res->val = (void*)string_cat((string_t*)second->val, (string_t*)first->val);
+					  break;
 					}
 					default:
 						printf("UNDEFINED VAR_TYPE in BINARY_ADD line:%d\n", __LINE__);
@@ -382,6 +387,10 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 						printf("WHAT with (bool)<double> ??\n");
 					  BREAK;
 					}
+					case STRING_TYPE: {
+						jump = ((string_t*)bool->val)->len;
+					  break;	
+					}
 					default:
 						printf("UNDEFINED VAR_TYPE %d in JUMP_IF_NOT line:%d\n", bool->type, __LINE__);
 					  BREAK;
@@ -410,7 +419,7 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 				printf("UNDEFUNED BYTE CODE %d\n", byte);
 			  BREAK;
 		}
-		
+				
 	}
 	
 	

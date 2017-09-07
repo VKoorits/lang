@@ -7,7 +7,7 @@
 
 void print_var(var_t*);
 
-#define COUNT_STD_FUNCTION (1)
+#define COUNT_STD_FUNCTION (3)
 
 #define NONE_TYPE (0)
 #define INT_TYPE (1)
@@ -17,6 +17,8 @@ void print_var(var_t*);
 
 
 void std_print(int);
+void std_println(int);
+void std_scan(int);
 
 
 
