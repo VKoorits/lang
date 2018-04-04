@@ -1,1 +1,8 @@
-ERROR: undeclared function 'factorials'
+INIT_0 NULL
+INIT_0 :lst ELEM_1 NULL
+ELEM_1 :HASH_2 NULL
+HASH_2 :ELEM_3 CALL_4 NULL
+ELEM_3 :5! =  NULL
+CALL_4 :LIST_5 factorials NULL
+LIST_5 :ELEM_6 NULL
+ELEM_6 :5 NULL

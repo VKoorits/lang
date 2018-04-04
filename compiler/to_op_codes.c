@@ -6,10 +6,10 @@ void write_op_codes(FILE* output, char* filename) {
 	FILE* code = fopen(filename, "rb");
 	int offset_to_constant, count_const;
 	fread(&offset_to_constant, sizeof(int), 1, code);
-		
+
 	fseek(code, offset_to_constant, SEEK_SET);
 	fread(&count_const, sizeof(int), 1, code);
-	
+
 	fprintf(output, "CONSTANTS:\n");
 	for(int i = 1; i <= count_const; i++ ){
 		int type, const_len;
@@ -18,29 +18,32 @@ void write_op_codes(FILE* output, char* filename) {
 		char* token = malloc(const_len+1);
 		fread(token, const_len, 1, code);
 		token[const_len] = '\0';
-		
+
 		fprintf(output, "\t%d: %s\n", i, token);
-		
+
 	}
-	
+
 	fseek(code, sizeof(int), SEEK_SET);
-	
+
 	fprintf(output, "CODE:\n");
 	int cn = 0;//command_number
 	while(1){
 		++cn;
 		char byte;
 		if( feof(code) ) break;
-		fread(&byte, sizeof(char), 1, code);	
-		
+		//long int pos = ftell(code);
+		//printf("*%li\t", pos);
+
+		fread(&byte, sizeof(char), 1, code);
+
 		if( byte == PUSH ) {
 			int arg;
-			fread(&arg, sizeof(int), 1, code); 
+			fread(&arg, sizeof(int), 1, code);
 			  if( feof(code) ) break;
 			fprintf(output, "%d:\tPUSH %d\n", cn, arg);
 		} else if ( byte == PUSH_CONST ) {
 			int arg;
-			fread(&arg, sizeof(int), 1, code); 
+			fread(&arg, sizeof(int), 1, code);
 			  if( feof(code) ) break;
 			fprintf(output, "%d:\tPUSH_CONST %d\n", cn, arg);
 		} else if ( byte == STORE ) {
@@ -69,17 +72,17 @@ void write_op_codes(FILE* output, char* filename) {
 			fprintf(output, "%d:\tNEW_VAR %d\n", cn, arg);
 		} else if ( byte == DELETE_VAR ) {
 			int arg;
-			fread(&arg, sizeof(int), 1, code); 
+			fread(&arg, sizeof(int), 1, code);
 			  if( feof(code) ) break;
 			fprintf(output, "%d:\tDELETE_VAR %d\n", cn, arg);
 		} else if ( byte == JUMP_IF_NOT) {
 			int arg;
-			fread(&arg, sizeof(int), 1, code); 
+			fread(&arg, sizeof(int), 1, code);
 			  if( feof(code) ) break;
 			fprintf(output, "%d:\tJUMP_IF_NOT 0x%d\n", cn, arg);
 		} else if( byte == GOTO ) {
 			int arg;
-			fread(&arg, sizeof(int), 1, code); 
+			fread(&arg, sizeof(int), 1, code);
 			  if( feof(code) ) break;
 			fprintf(output, "%d:\tGOTO 0x%d\n", cn, arg);
 		} else if ( byte == CALL_STD ) {
@@ -92,25 +95,5 @@ void write_op_codes(FILE* output, char* filename) {
 			break;
 		}
 	};
-	
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

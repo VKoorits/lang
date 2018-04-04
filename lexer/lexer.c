@@ -20,8 +20,6 @@ static int count_point_in_num = 0;
 static int priorety; //для записи приоритета оператора
 //#####################
 
-void mark() { printf("\t==-==\n\t  |\n\t==-==\n");}
-
 
 void print_token(const LEX_TOKEN* tok, FILE* output_stream){
 	if(tok) {
@@ -59,8 +57,8 @@ void _add_token(){
 		tokens_capacity *= EXPANSION_NUM;//может быть изменить коэффициент/ввести доп условия
 		tokens = realloc(tokens, sizeof(LEX_TOKEN) * (tokens_capacity) );
 	}
-	
-	
+
+
 
 	//перенос накопленных данных
 	tokens[count_tokens].token = malloc(len_token+1);
@@ -81,9 +79,9 @@ void _add_token(){
 		} else
 			tokens[count_tokens].info = 0;
 	}
-	
+
 	tokens[count_tokens].type = token_type;
-	
+
 	count_tokens++;
 	len_token = 0;
 	numerator[this_line_pos]++;
@@ -95,12 +93,12 @@ void _add_token(){
 
 ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 	FILE* lang_prog = fopen(filename, "r");
-	
+
 	if( !lang_prog ){
 		fprintf(error_stream, "ERROR: lex_analyze can`t open file %s\n", filename);
 		return NULL;
 	}
-	
+
 	//###############################
 	char *str = malloc( MAX_LENGTH_STRING_IN_LANG_PROG + 2 );//считывается из файла
 	/*	В некоторых местах проверяется 1-2 следующих символа.
@@ -132,7 +130,7 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 		len_token = 0;
 		token_type = UNKNOWN_TOKEN;
 		int in_quote = 0;
-		
+
 		deep = 0;
 		if(!multyline_comment){ // считаем величину отступа
 				if( str[pos_in_main_str] == ' ') {
@@ -158,7 +156,7 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 					deep = pos_in_main_str;
 				}
 		}
-		
+
 		while( this_char = str[pos_in_main_str++] ) { // обработка одной строки посимволно
 			if(multyline_comment){
 				if(this_char == '*' && str[pos_in_main_str] == '/'){
@@ -187,7 +185,7 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 				token_str[len_token++] = this_char;
 				if(len_token == 1 && token_type != STRING_TOKEN) token_type = IDENT_TOKEN;
 			} else if( isdigit(this_char) ) {
-				
+
 				/*
 				мы можем встретить число в нескольких случаях:
 				IDENT_TOKEN  or INT_NUM_TOKEN or STRING_TOKEN: [ bar42 ] or [ 42 ] or [ "42" ]
@@ -213,10 +211,10 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 					token_str[len_token++] = this_char;
 				else
 					_add_token();
-					
+
 			} else {
 				//разнообразные символы===============================
-				
+
 				int this_is_quote = NOT_IN_QUOTE;
 				if (this_char == '\'')  this_is_quote = IN_QUOTE;
 				else if (this_char == '"') this_is_quote = IN_DOUBLE_QUOTE;
@@ -244,7 +242,7 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 						//printf("Started operator: %c", this_char);
 						//TODO проверка на выход за пределы
 						//TODO не только здесь
-						
+
 						//функция get_op() изменяет token_str
 						token_str[0] = this_char; token_str[1] = str[pos_in_main_str];
 						token_str[2] = str[pos_in_main_str+1]; token_str[3] = '\0';
@@ -254,8 +252,8 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 						_add_token();
 					}
 				}
-				
-				
+
+
 				if( this_is_quote ) {
 					if( this_is_quote == in_quote ){
 						in_quote = NOT_IN_QUOTE;
@@ -272,9 +270,9 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 					}
 					token_str[len_token++] = this_char;
 				}else if( token_type == STRING_TOKEN ) token_str[len_token++] = this_char;
-				
-							
-			
+
+
+
 			}//other characters
 		}//one string lex
 		if(in_quote){
@@ -301,23 +299,23 @@ ALL_LEX_TOKENS* lex_analyze(const char* filename, FILE* error_stream){
 			numerator = realloc(numerator, sizeof(int) * numerator_capacity);
 			deeper = realloc(deeper, sizeof(int) * numerator_capacity);
 		}
-	
+
 	}//file lex
-	
+
 	if(multyline_comment){
 			fprintf(error_stream, "ERROR: no closing multyline comment, that opend in str %d\n", multyline_comment);
 			return NULL;
 	}
-	
+
 	free(str);
 	free(token_str);
-	
+
 	ALL_LEX_TOKENS* result = malloc( sizeof(ALL_LEX_TOKENS) );
 	result->tokens = realloc(tokens, sizeof(LEX_TOKEN) * (count_tokens) );
 	result->summary_count_tokens = count_tokens;
 	result->count_token_lines = this_line_pos;
 	result->count_tokens = realloc(numerator, sizeof(int) * this_line_pos);
 	result->deeper = realloc(deeper, sizeof(int) * this_line_pos);
-	
+
 	return result;
 }

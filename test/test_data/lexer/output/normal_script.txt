@@ -1,1 +1,0 @@
-ERROR: lex_analyze can`t open file test/test_data/lexer/input/normal_script.l

@@ -1,0 +1,3 @@
+ERROR: this tokens can`t be near:
+	OPERATION_TOKEN: +, info => 9
+	OPERATION_TOKEN: *, info => 10

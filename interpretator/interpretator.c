@@ -33,25 +33,24 @@ static var_t* read_const_from_byte_code(FILE* out, char* const code_begin, unsig
 	{
 		//в первых 4 байтах кода записано смещение к константам
 		int offset_to_const = *((int*)code);
-		
+
 		code += offset_to_const;
 		*count_const = GET_INT;
-		
+
 		constants = calloc(sizeof(var_t), *count_const);
 		for(int i=0; i<*count_const; i++) {
 			constants[i].type = GET_INT;
-			int const_len = GET_INT;			
-						
+			int const_len = GET_INT;
+
 			char* constant = malloc(const_len+1);
 			strncpy(constant, code, const_len);
 			code += const_len;
 			constant[const_len] = '\0';
-			
+
 			//TODO! это должно делаться на этапе компиляции
 			switch(constants[i].type) {
 				case INT_NUM_TOKEN:
-					mark();
-					constants[i].val = (void*)atoi(constant);
+					constants[i].val = (void*)atol(constant);
 				  break;
 				case FLOAT_NUM_TOKEN:
 					constants[i].val = malloc(sizeof(double));
@@ -63,31 +62,31 @@ static var_t* read_const_from_byte_code(FILE* out, char* const code_begin, unsig
 				default:
 					printf("DEFAULT %d\n", constants[i].type);
 				  break;
-			}			
+			}
 		}
-		
-				
+
+
 	}
-	
+
 	return constants;
 }
 
 static int interpretate(FILE* out, char* const code_begin, unsigned int size_code) {
-	constants = read_const_from_byte_code(out, code_begin, size_code, &const_count);	
+	constants = read_const_from_byte_code(out, code_begin, size_code, &const_count);
 	var_stack = calloc(sizeof(var_t), STARTED_COUNT_VAR_IN_MAIN_STACK);
 	var_stack_size = 0;
 	var_stack_capacity = STARTED_COUNT_VAR_IN_MAIN_STACK;
 
 	main_stack = stack_new();
-	
-	
-	
+
+
+
 	char* code = code_begin + 4;
 
 	char byte;
 	int arg;
 	int i;
-		//mark();
+
 	int run_programm = 1;
 	while(run_programm) {
 		byte = GET_BYTE;
@@ -99,17 +98,17 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 			case _NEW_VAR: {
 				// 1:подгоняем размер; 2:записываем новые переменные; 3:увеличиваем счетчик
 				arg = GET_INT;//количество новых переменных
-				
+
 				if(var_stack_capacity < var_stack_size + arg){
 					var_stack = realloc(var_stack, sizeof(var_t)*(var_stack_size + arg) );
 					var_stack_capacity = var_stack_size + arg;
 				}
-				
+
 				for(i = var_stack_size; i < var_stack_size + arg; ++i){
 					var_stack[i].type = NONE_TYPE;
 					var_stack[i].val = NULL;
 				}
-				
+
 				var_stack_size += arg;
 			  break;
 			}
@@ -130,7 +129,7 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 			case _STORE: {
 				var_t* from = st_pop(main_stack);
 				var_t* where = st_pop(main_stack);
-				
+
 				where->type = from->type;
 				switch(where->type) {
 					case NONE_TYPE:
@@ -149,7 +148,7 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 						printf("UNDEFINED VAR_TYPE in STORE line:%d\n", __LINE__);
 					  BREAK;
 				}
-				
+
 				break;
 			}
 			case _BINARY_ADD: {
@@ -157,13 +156,13 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 				var_t* res = malloc(sizeof(var_t));
 				var_t* first = st_pop(main_stack);
 				var_t* second = st_pop(main_stack);
-				
+
 				if(first->type != second->type) {
-					//TODO доп проверки, на совместимость типов для сложения					
+					//TODO доп проверки, на совместимость типов для сложения
 					printf("UNCORRECT TYPE OPERATORS FOR BINARY_ADD %d and %d\n", first->type, second->type);
-					BREAK;										
+					BREAK;
 				}
-				
+
 				res->type = first->type;
 				switch(res->type) {
 					case NONE_TYPE: {
@@ -171,7 +170,7 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 						BREAK;
 					}
 					case INT_TYPE: {
-						res->val = (void*)( (int)second->val + (int)first->val );
+						res->val = (void*)( (long)second->val + (long)first->val );
 					  break;
 					}
 					case FLOAT_TYPE: {
@@ -187,7 +186,7 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 						printf("UNDEFINED VAR_TYPE in BINARY_ADD line:%d\n", __LINE__);
 					  BREAK;
 				}
-				
+
 				st_push(main_stack, res);
 				break;
 			}
@@ -196,14 +195,14 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 				var_t* res = malloc(sizeof(var_t));
 				var_t* first = st_pop(main_stack);
 				var_t* second = st_pop(main_stack);
-				
-								
+
+
 				if(first->type != second->type) {
-					//TODO доп проверки, на совместимость типов для сложения					
+					//TODO доп проверки, на совместимость типов для сложения
 					printf("UNCORRECT TYPE OPERATORS FOR BINARY_SUB %d and %d\n", first->type, second->type);
-					BREAK;										
+					BREAK;
 				}
-				
+
 				res->type = first->type;
 				switch(res->type) {
 					case NONE_TYPE: {
@@ -211,7 +210,7 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 						BREAK;
 					}
 					case INT_TYPE: {
-						res->val = (void*)( (int)second->val - (int)first->val );
+						res->val = (void*)( (long)second->val - (long)first->val );
 					  break;
 					}
 					case FLOAT_TYPE: {
@@ -223,7 +222,7 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 						printf("UNDEFINED VAR_TYPE in BINARY_SUB line:%d\n", __LINE__);
 					  BREAK;
 				}
-				
+
 				st_push(main_stack, res);
 				break;
 			}
@@ -232,13 +231,13 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 				var_t* res = malloc(sizeof(var_t));
 				var_t* first = st_pop(main_stack);
 				var_t* second = st_pop(main_stack);
-				
+
 				if(first->type != second->type) {
-					//TODO доп проверки, на совместимость типов для сложения					
+					//TODO доп проверки, на совместимость типов для сложения
 					printf("UNCORRECT TYPE OPERATORS FOR MULT %d and %d\n", first->type, second->type);
-					BREAK;										
+					BREAK;
 				}
-				
+
 				res->type = first->type;
 				switch(res->type) {
 					case NONE_TYPE: {
@@ -246,7 +245,7 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 						BREAK;
 					}
 					case INT_TYPE: {
-						res->val = (void*)( (int)second->val * (int)first->val );
+						res->val = (void*)( (long)second->val * (long)first->val );
 					  break;
 					}
 					case FLOAT_TYPE: {
@@ -258,7 +257,7 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 						printf("UNDEFINED VAR_TYPE in MULT line:%d\n", __LINE__);
 					  BREAK;
 				}
-				
+
 				st_push(main_stack, res);
 				break;
 			}
@@ -267,13 +266,13 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 				var_t* res = malloc(sizeof(var_t));
 				var_t* first = st_pop(main_stack);
 				var_t* second = st_pop(main_stack);
-				
+
 				if(first->type != second->type) {
-					//TODO доп проверки, на совместимость типов для сложения					
+					//TODO доп проверки, на совместимость типов для сложения
 					printf("UNCORRECT TYPE OPERATORS FOR DIVISION %d and %d\n", first->type, second->type);
-					BREAK;										
+					BREAK;
 				}
-				
+
 				res->type = first->type;
 				switch(res->type) {
 					case NONE_TYPE: {
@@ -281,7 +280,7 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 						BREAK;
 					}
 					case INT_TYPE: {
-						res->val = (void*)( (int)second->val / (int)first->val );
+						res->val = (void*)( (long)second->val / (long)first->val );
 					  break;
 					}
 					case FLOAT_TYPE: {
@@ -293,7 +292,42 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 						printf("UNDEFINED VAR_TYPE in DIVISION line:%d\n", __LINE__);
 					  BREAK;
 				}
-				
+
+				st_push(main_stack, res);
+				break;
+			}
+			case _MOD: {
+				//MEMORY_LEAK: res помещается на стек, но память не освобождается при удалении со стека
+				var_t* res = malloc(sizeof(var_t));
+				var_t* first = st_pop(main_stack);
+				var_t* second = st_pop(main_stack);
+
+				if(first->type != second->type) {
+					//TODO доп проверки, на совместимость типов для сложения
+					printf("UNCORRECT TYPE OPERATORS FOR MOD %d and %d\n", first->type, second->type);
+					BREAK;
+				}
+
+				res->type = first->type;
+				switch(res->type) {
+					case NONE_TYPE: {
+						printf("ERROR: NONE_TYPE %% NONE_TYPE == ERROR\n");
+						BREAK;
+					}
+					case INT_TYPE: {
+						res->val = (void*)( (long)second->val % (long)first->val );
+					  break;
+					}
+					case FLOAT_TYPE: {
+						printf("ERROR: Float %% Float == ERROR");
+					  BREAK;
+					  break;
+					}
+					default:
+						printf("UNDEFINED VAR_TYPE in MOD line:%d\n", __LINE__);
+					  BREAK;
+				}
+
 				st_push(main_stack, res);
 				break;
 			}
@@ -302,13 +336,13 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 				var_t* res = malloc(sizeof(var_t));
 				var_t* first = st_pop(main_stack);
 				var_t* second = st_pop(main_stack);
-				
+
 				if(first->type != second->type) {
-					//TODO доп проверки, на совместимость типов для сложения					
+					//TODO доп проверки, на совместимость типов для сложения
 					printf("UNCORRECT TYPE OPERATORS FOR LESS %d and %d\n", first->type, second->type);
-					BREAK;										
+					BREAK;
 				}
-				
+
 				res->type = BOOL_TYPE;
 				switch(first->type) {
 					case NONE_TYPE: {
@@ -316,19 +350,19 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 					  break;
 					}
 					case INT_TYPE: {
-						res->val = (void*)( (int)second->val < (int)first->val );
+						res->val = (void*)((long)( (long)second->val < (long)first->val ));
 					  break;
 					}
 					case FLOAT_TYPE: {
 						res->val = malloc(sizeof(double));
-						res->val = (void*)(*(double*)second->val < *(double*)first->val);
+						res->val = (void*)(long)(*(double*)second->val < *(double*)first->val);
 					  break;
 					}
 					default:
 						printf("UNDEFINED VAR_TYPE %d in LESS line:%d\n", res->type, __LINE__);
 					  BREAK;
 				}
-				
+
 				st_push(main_stack, res);
 				break;
 			}
@@ -337,13 +371,13 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 				var_t* res = malloc(sizeof(var_t));
 				var_t* first = st_pop(main_stack);
 				var_t* second = st_pop(main_stack);
-				
+
 				if(first->type != second->type) {
-					//TODO доп проверки, на совместимость типов для сложения					
+					//TODO доп проверки, на совместимость типов для сложения
 					printf("UNCORRECT TYPE OPERATORS FOR MORE %d and %d\n", first->type, second->type);
-					BREAK;										
+					BREAK;
 				}
-				
+
 				res->type = BOOL_TYPE;
 				switch(first->type) {
 					case NONE_TYPE: {
@@ -351,27 +385,27 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 					  break;
 					}
 					case INT_TYPE: {
-						res->val = (void*)( (int)second->val > (int)first->val );
+						res->val = (void*)(long)( (long)second->val > (long)first->val );
 					  break;
 					}
 					case FLOAT_TYPE: {
 						res->val = malloc(sizeof(double));
-						res->val = (void*)(*(double*)second->val > *(double*)first->val);
+						res->val = (void*)(long)(*(double*)second->val > *(double*)first->val);
 					  break;
 					}
 					default:
 						printf("UNDEFINED VAR_TYPE %d in MORE line:%d\n",res->type, __LINE__);
 					  BREAK;
 				}
-				
+
 				st_push(main_stack, res);
 				break;
-			}			
+			}
 			case _JUMP_IF_NOT: {
 				arg = GET_INT;
 				//MEMORY_LEAK: res помещается на стек, но память не освобождается при удалении со стека
 				var_t* bool = st_pop(main_stack);
-				int jump;
+				long jump;
 
 				switch(bool->type) {
 					case NONE_TYPE: {
@@ -380,7 +414,7 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 					}
 					case INT_TYPE:
 					case BOOL_TYPE: {
-						jump = (int)bool->val;
+						jump = (long)bool->val;
 					  break;
 					}
 					case FLOAT_TYPE: {
@@ -389,7 +423,7 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 					}
 					case STRING_TYPE: {
 						jump = ((string_t*)bool->val)->len;
-					  break;	
+					  break;
 					}
 					default:
 						printf("UNDEFINED VAR_TYPE %d in JUMP_IF_NOT line:%d\n", bool->type, __LINE__);
@@ -398,7 +432,7 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 				//JUMP_IF_NOT
 				if( !jump )
 					code = code_begin + arg;
-				
+
 				break;
 			}
 			case _GOTO: {
@@ -409,9 +443,9 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 			case _CALL_STD: {
 				int num_function = GET_INT;
 				int count_arg = GET_INT;
-				
+
 				std_functions[num_function](count_arg);
-				
+
 			  break;
 			}
 
@@ -419,10 +453,10 @@ static int interpretate(FILE* out, char* const code_begin, unsigned int size_cod
 				printf("UNDEFUNED BYTE CODE %d\n", byte);
 			  BREAK;
 		}
-				
+
 	}
-	
-	
+
+
 }
 
 int run_byte_code(FILE* out, char* filename) {
@@ -434,17 +468,17 @@ int run_byte_code(FILE* out, char* filename) {
 		fseek(code_file, 0, SEEK_END);
 		unsigned int size_code = (unsigned int)ftell(code_file);
 		fseek(code_file, 0, SEEK_SET);
-		
+
 		char* code = malloc(size_code);
 		if( !code ) {
 			fprintf(out, "ERROR: interpretator very simple and it can`t save all byte code in memory\n");
 			return NO_MEMORY_FOR_SAVE_CODE_IN_MEMORY;
 		}
 		fread(code, size_code, 1, code_file);
-		
+
 		interpretate(out, (char*)code, size_code);
-		
-		free(code);		
+
+		free(code);
 	fclose(code_file);
 	return 0;
 }

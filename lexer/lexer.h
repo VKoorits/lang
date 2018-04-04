@@ -84,7 +84,6 @@ typedef struct ALL_LEX_TOKENS {
 #include "../syntax/syntax.h"
 void print_token(const LEX_TOKEN*, FILE*);
 ALL_LEX_TOKENS* lex_analyze(const char*, FILE*);
-void mark(void);
 
 
 #endif
